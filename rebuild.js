@@ -1,8 +1,8 @@
 function build() {
     var cmakeJS = require("cmake-js");
 
-    var defaultRuntime = "nw";
-    var defaultRuntimeVersion = "0.12.3";
+    var defaultRuntime = "electron";
+    var defaultRuntimeVersion = "1.6.11";
     var defaultWinArch = "ia32";
 
     var options = {
@@ -24,7 +24,7 @@ function build() {
     if (buildSystem.options.arch == undefined && process.platform == "win32") {
         buildSystem.options.arch = defaultWinArch;
     }
-
+    console.log(buildSystem.options);
     buildSystem.rebuild().catch( function() { process.exit(1); } );
 }
 

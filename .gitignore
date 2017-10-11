@@ -6,3 +6,4 @@ CMakeLists.txt.user
 
 deps/VLC*.app/
 deps/vlc-*.dmg
+*.DS_Store
