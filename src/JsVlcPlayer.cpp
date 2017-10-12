@@ -289,7 +289,8 @@ void JsVlcPlayer::closeAll()
 }
 
 JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8::Array>& vlcOpts ) :
-    _libvlc( nullptr )
+    _libvlc( nullptr ),
+    _lastTimeFrameReady( 0 )
 {
     Wrap( thisObject );
 
@@ -568,8 +569,14 @@ void JsVlcPlayer::onFrameReady()
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope( isolate );
 
-    assert( !_jsFrameBuffer.IsEmpty() ); //FIXME! maybe it worth add condition here
-    callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+    const bool isPlaying = player().is_playing();
+    const libvlc_time_t timeFrameReady = player().playback().get_time();
+    if (isPlaying || timeFrameReady != _lastTimeFrameReady) {
+      _lastTimeFrameReady = timeFrameReady;
+
+      assert(!_jsFrameBuffer.IsEmpty()); //FIXME! maybe it worth add condition here
+      callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+    }
 }
 
 void JsVlcPlayer::onFrameCleanup()

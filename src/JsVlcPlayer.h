@@ -159,4 +159,6 @@ private:
     v8::UniquePersistent<v8::Object> _jsPlaylist;
 
     uv_timer_t _errorTimer;
+
+    libvlc_time_t _lastTimeFrameReady;
 };
