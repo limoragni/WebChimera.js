@@ -237,7 +237,6 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_RW_PROPERTY( instanceTemplate, "mute", &JsVlcPlayer::muted, &JsVlcPlayer::setMuted );
 
     NODE_SET_PROTOTYPE_METHOD( constructorTemplate, "load", jsLoad );
-    NODE_SET_PROTOTYPE_METHOD( constructorTemplate, "getFrameAtTime", jsGetFrameAtTime );
     SET_METHOD( constructorTemplate, "play", &JsVlcPlayer::play );
     SET_METHOD( constructorTemplate, "pause", &JsVlcPlayer::pause );
     SET_METHOD( constructorTemplate, "togglePause", &JsVlcPlayer::togglePause );
@@ -799,18 +798,6 @@ void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
 
         jsPlayer->load( *mrl, startPlaying );
     }
-}
-
-void JsVlcPlayer::jsGetFrameAtTime(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-    using namespace v8;
-
-    JsVlcPlayer* jsPlayer = ObjectWrap::Unwrap<JsVlcPlayer>( args.Holder() );
-
-    assert( args.Length() == 1 );
-    const double timeInSeconds = args[0]->ToNumber()->Value();
-    const libvlc_time_t timeInMs = static_cast<libvlc_time_t>( timeInSeconds * 1000.0 );
-    jsPlayer->getFrameAtTime( timeInMs );
 }
 
 void JsVlcPlayer::getJsCallback( v8::Local<v8::String> property,

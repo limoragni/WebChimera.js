@@ -53,7 +53,6 @@ public:
     static void initJsApi( const v8::Handle<v8::Object>& exports );
 
     static void jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args );
-    static void jsGetFrameAtTime( const v8::FunctionCallbackInfo<v8::Value>& args );
 
     static void getJsCallback( v8::Local<v8::String> property,
                                const v8::PropertyCallbackInfo<v8::Value>& info,
