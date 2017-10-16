@@ -1,5 +1,6 @@
 #include "JsVlcPlayer.h"
 
+#include <chrono>
 #include <string.h>
 
 #include "NodeTools.h"
@@ -235,7 +236,9 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_RW_PROPERTY( instanceTemplate, "volume", &JsVlcPlayer::volume, &JsVlcPlayer::setVolume );
     SET_RW_PROPERTY( instanceTemplate, "mute", &JsVlcPlayer::muted, &JsVlcPlayer::setMuted );
 
-    NODE_SET_PROTOTYPE_METHOD( constructorTemplate, "play", jsPlay );
+    NODE_SET_PROTOTYPE_METHOD( constructorTemplate, "load", jsLoad );
+    NODE_SET_PROTOTYPE_METHOD( constructorTemplate, "getFrameAtTime", jsGetFrameAtTime );
+    SET_METHOD( constructorTemplate, "play", &JsVlcPlayer::play );
     SET_METHOD( constructorTemplate, "pause", &JsVlcPlayer::pause );
     SET_METHOD( constructorTemplate, "togglePause", &JsVlcPlayer::togglePause );
     SET_METHOD( constructorTemplate, "stop",  &JsVlcPlayer::stop );
@@ -290,7 +293,12 @@ void JsVlcPlayer::closeAll()
 
 JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8::Array>& vlcOpts ) :
     _libvlc( nullptr ),
-    _lastTimeFrameReady( 0 )
+    _isPlaying( false ),
+    _currentTime( 0 ),
+    _lastTimeFrameReady( InvalidTime ),
+    _lastTimeGlobalFrameReady( InvalidTime ),
+    _getFrameState( EGetFrameState::NOT_USED ),
+    _getFrameTime( InvalidTime )
 {
     Wrap( thisObject );
 
@@ -566,18 +574,35 @@ void* JsVlcPlayer::onFrameSetup( const I420VideoFrame& videoFrame )
 
 void JsVlcPlayer::onFrameReady()
 {
-    using namespace v8;
+    vlc::player& p = player();
 
-    Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
+    switch( _getFrameState ) {
+        case EGetFrameState::NOT_USED:
+            updateCurrentTime();
 
-    const bool isPlaying = player().is_playing();
-    const libvlc_time_t timeFrameReady = player().playback().get_time();
-    if (isPlaying || timeFrameReady != _lastTimeFrameReady) {
-      _lastTimeFrameReady = timeFrameReady;
+            if( _isPlaying )
+                doCallCallback();
+            break;
+        case EGetFrameState::GETTING:
+            if( libvlc_Paused == p.get_state() ) {
+                const libvlc_time_t playbackTime = p.playback().get_time();
+                if( playbackTime ==_getFrameTime ) {
+                    doCallCallback();
+                    _getFrameState = EGetFrameState::SENT;
+                }
+            }
+            else {
+                doPauseAtTime();
+            }
+            break;
+        case EGetFrameState::SENT:
+            // Check if playback was resumed while getting frame.
+            if( p.is_playing() ) {
+                doPauseAtTime();
 
-      assert(!_jsFrameBuffer.IsEmpty()); //FIXME! maybe it worth add condition here
-      callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+                _getFrameState = EGetFrameState::GETTING;
+            }
+            break;
     }
 }
 
@@ -720,20 +745,72 @@ void JsVlcPlayer::callCallback( Callbacks_e callback,
     emitFunction->Call( eventEmitter, static_cast<int>( argList.size() ), argList.data() );
 }
 
-void JsVlcPlayer::jsPlay( const v8::FunctionCallbackInfo<v8::Value>& args )
+void JsVlcPlayer::updateCurrentTime() {
+    using namespace std::chrono;
+
+    milliseconds msSinceEpoch = duration_cast<milliseconds>( system_clock::now().time_since_epoch() );
+    const libvlc_time_t currentTimeGlobal = static_cast<libvlc_time_t>( msSinceEpoch.count() );
+
+    if( _isPlaying ) {
+        const libvlc_time_t playbackTime = player().playback().get_time();
+        if( _lastTimeFrameReady == playbackTime ) {
+            _currentTime += currentTimeGlobal - _lastTimeGlobalFrameReady;
+        }
+        else {
+            _currentTime = playbackTime;
+            _lastTimeFrameReady = playbackTime;
+      }
+    }
+
+    _lastTimeGlobalFrameReady = currentTimeGlobal;
+}
+
+void JsVlcPlayer::doCallCallback() {
+    using namespace v8;
+
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope( isolate );
+
+    assert( !_jsFrameBuffer.IsEmpty() ); //FIXME! maybe it worth add condition here
+    callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+}
+
+void JsVlcPlayer::doPauseAtTime() {
+    vlc::player& p = player();
+
+    p.pause();
+    p.playback().set_time( _getFrameTime );
+}
+
+void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
 {
     using namespace v8;
 
     JsVlcPlayer* jsPlayer = ObjectWrap::Unwrap<JsVlcPlayer>( args.Holder() );
 
-    if( args.Length() == 0 ) {
-        jsPlayer->play();
-    } else if( args.Length() ==  1 ) {
-        String::Utf8Value mrl( args[0]->ToString() );
-        if( mrl.length() ) {
-            jsPlayer->play( *mrl );
+    assert( args.Length() >= 1 );
+    String::Utf8Value mrl( args[0]->ToString() );
+    if( mrl.length() ) {
+        bool startPlaying = false;
+        if( args.Length() == 2 ) {
+            assert( args[1]->IsBoolean() );
+            startPlaying = args[1]->ToBoolean()->Value();
         }
+
+        jsPlayer->load( *mrl, startPlaying );
     }
+}
+
+void JsVlcPlayer::jsGetFrameAtTime(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    using namespace v8;
+
+    JsVlcPlayer* jsPlayer = ObjectWrap::Unwrap<JsVlcPlayer>( args.Holder() );
+
+    assert( args.Length() == 1 );
+    const double timeInSeconds = args[0]->ToNumber()->Value();
+    const libvlc_time_t timeInMs = static_cast<libvlc_time_t>( timeInSeconds * 1000.0 );
+    jsPlayer->getFrameAtTime( timeInMs );
 }
 
 void JsVlcPlayer::getJsCallback( v8::Local<v8::String> property,
@@ -775,7 +852,7 @@ void JsVlcPlayer::setJsCallback( v8::Local<v8::String> property,
 
 bool JsVlcPlayer::playing()
 {
-    return player().is_playing();
+    return _isPlaying;
 }
 
 double JsVlcPlayer::length()
@@ -817,22 +894,48 @@ void JsVlcPlayer::setPixelFormat( unsigned format )
 
 double JsVlcPlayer::position()
 {
-    return player().playback().get_position();
+    assert( _currentTime >= 0 && _currentTime <= length() );
+
+    return static_cast<double>( _currentTime ) / length();
 }
 
 void JsVlcPlayer::setPosition( double position )
 {
-    player().playback().set_position( static_cast<float>( position ) );
+    assert( position >= 0.0 && position <= 1.0 );
+
+    _currentTime = static_cast<libvlc_time_t>( position * length() );
+    _lastTimeFrameReady = InvalidTime;
+    _lastTimeGlobalFrameReady = InvalidTime;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
+    if (_isPlaying)
+        player().playback().set_position( static_cast<float>( position ) );
+    else
+        getFrameAtTime( _currentTime );
 }
 
 double JsVlcPlayer::time()
 {
-    return static_cast<double>( player().playback().get_time() );
+    assert( _currentTime >= 0.0 && _currentTime <= length() );
+
+    return static_cast<double>( _currentTime ); 
 }
 
 void JsVlcPlayer::setTime( double time )
 {
-    player().playback().set_time( static_cast<libvlc_time_t>( time ) );
+    assert( time >= 0.0 && time <= length() );
+
+    _currentTime = static_cast<libvlc_time_t>( time );
+    _lastTimeFrameReady = InvalidTime;
+    _lastTimeGlobalFrameReady = InvalidTime;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
+    if( _isPlaying )
+        player().playback().set_time( _currentTime );
+    else
+        getFrameAtTime( _currentTime );
 }
 
 unsigned JsVlcPlayer::volume()
@@ -855,33 +958,79 @@ void JsVlcPlayer::setMuted( bool mute )
     player().audio().set_mute( mute );
 }
 
-void JsVlcPlayer::play()
+void JsVlcPlayer::load( const std::string& mrl, bool startPlaying )
 {
-    player().play();
-}
+    _currentTime = 0;
+    _lastTimeFrameReady = InvalidTime;
+    _lastTimeGlobalFrameReady = InvalidTime;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
 
-void JsVlcPlayer::play( const std::string& mrl )
-{
     vlc::player& p = player();
 
     p.clear_items();
     const int idx = p.add_media( mrl.c_str() );
-    if( idx >= 0 )
-        p.play( idx );
+    if( idx >= 0 ) {
+        _isPlaying = startPlaying;
+
+        if( startPlaying )
+          p.play( idx );
+        else
+          getFrameAtTime( _currentTime );
+    }
+    else {
+        _isPlaying = false;
+    }
+}
+
+void JsVlcPlayer::getFrameAtTime( libvlc_time_t time )
+{
+    _currentTime = time;
+    _lastTimeFrameReady = InvalidTime;
+    _lastTimeGlobalFrameReady = InvalidTime;
+    _getFrameState = EGetFrameState::GETTING;
+    _getFrameTime = time;
+
+    vlc::player& p = player();
+    p.play();
+    p.playback().set_time( _getFrameTime );
+}
+
+void JsVlcPlayer::play()
+{
+    _isPlaying = true;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
+    player().play();
 }
 
 void JsVlcPlayer::pause()
 {
+    _isPlaying = false;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
     player().pause();
 }
 
 void JsVlcPlayer::togglePause()
 {
+    _isPlaying = !_isPlaying;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
     player().togglePause();
 }
 
 void JsVlcPlayer::stop()
 {
+    _isPlaying = false;
+    _lastTimeFrameReady = InvalidTime;
+    _lastTimeGlobalFrameReady = InvalidTime;
+    _getFrameState = EGetFrameState::NOT_USED;
+    _getFrameTime = InvalidTime;
+
     player().stop();
 }
 

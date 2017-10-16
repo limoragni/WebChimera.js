@@ -52,7 +52,8 @@ class JsVlcPlayer :
 public:
     static void initJsApi( const v8::Handle<v8::Object>& exports );
 
-    static void jsPlay( const v8::FunctionCallbackInfo<v8::Value>& args );
+    static void jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args );
+    static void jsGetFrameAtTime( const v8::FunctionCallbackInfo<v8::Value>& args );
 
     static void getJsCallback( v8::Local<v8::String> property,
                                const v8::PropertyCallbackInfo<v8::Value>& info,
@@ -84,8 +85,9 @@ public:
     bool muted();
     void setMuted( bool );
 
+    void load( const std::string& mrl, bool startPlaying );
+    void getFrameAtTime( libvlc_time_t time );
     void play();
-    void play( const std::string& mrl );
     void pause();
     void togglePause();
     void stop();
@@ -130,6 +132,10 @@ private:
     void callCallback( Callbacks_e callback,
                        std::initializer_list<v8::Local<v8::Value> > list = std::initializer_list<v8::Local<v8::Value> >() );
 
+    void updateCurrentTime();
+    void doCallCallback();
+    void doPauseAtTime();
+
 protected:
     void* onFrameSetup( const RV32VideoFrame& ) override;
     void* onFrameSetup( const I420VideoFrame& ) override;
@@ -137,8 +143,17 @@ protected:
     void onFrameCleanup() override;
 
 private:
+    enum class EGetFrameState
+    {
+        NOT_USED,
+        GETTING,
+        SENT
+    };
+
     static v8::Persistent<v8::Function> _jsConstructor;
     static std::set<JsVlcPlayer*> _instances;
+
+    static const libvlc_time_t InvalidTime = ~0;
 
     libvlc_instance_t* _libvlc;
     vlc::player _player;
@@ -160,5 +175,12 @@ private:
 
     uv_timer_t _errorTimer;
 
+    bool _isPlaying;
+    libvlc_time_t _currentTime;
+
     libvlc_time_t _lastTimeFrameReady;
+    libvlc_time_t _lastTimeGlobalFrameReady;
+
+    EGetFrameState _getFrameState;
+    libvlc_time_t _getFrameTime;
 };
