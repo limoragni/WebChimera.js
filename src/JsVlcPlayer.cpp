@@ -962,7 +962,7 @@ void JsVlcPlayer::nextFrame()
 
     double iFrame = frame();
     if( iFrame < frames() - 1 )
-        setFrame(iFrame + 1);
+        setFrame( iFrame + 1 );
 }
 
 unsigned JsVlcPlayer::volume()
