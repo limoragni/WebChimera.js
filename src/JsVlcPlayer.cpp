@@ -365,11 +365,9 @@ void JsVlcPlayer::initLibvlc( const v8::Local<v8::Array>& vlcOpts )
         _libvlc = libvlc_new( static_cast<int>( libvlcOpts.size() ), libvlcOpts.data() );
     }
 
-#if defined(_DEBUG)
     if( _libvlc ) {
         libvlc_log_set(_libvlc, JsVlcPlayer::log_event_wrapper, this);
     }
-#endif
 }
 
 JsVlcPlayer::~JsVlcPlayer()
@@ -420,6 +418,7 @@ inline int _vscprintf( const char* format, va_list argptr )
 
 void JsVlcPlayer::log_event( int level, const libvlc_log_t *ctx, const char *fmt, va_list args )
 {
+#if defined(_DEBUG)
     va_list argsCopy;
     va_copy( argsCopy, args );
     int messageSize = _vscprintf( fmt, argsCopy );
@@ -440,6 +439,7 @@ void JsVlcPlayer::log_event( int level, const libvlc_log_t *ctx, const char *fmt
     _asyncDataGuard.unlock();
 
     uv_async_send( &_async );
+#endif
 }
 
 void JsVlcPlayer::handleAsync()
