@@ -301,7 +301,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _lastTimeFrameReady( InvalidTime ),
     _lastTimeGlobalFrameReady( InvalidTime ),
     _getFrameState( EGetFrameState::NOT_USED ),
-    _getFrameTime( InvalidTime )
+    _getFrameAtTime( InvalidTime )
 {
     Wrap( thisObject );
 
@@ -589,7 +589,7 @@ void JsVlcPlayer::onFrameReady()
         case EGetFrameState::GETTING:
             if( libvlc_Paused == p.get_state() ) {
                 const libvlc_time_t playbackTime = p.playback().get_time();
-                if( playbackTime ==_getFrameTime ) {
+                if( playbackTime == _getFrameAtTime ) {
                     doCallCallback();
                     _getFrameState = EGetFrameState::SENT;
                 }
@@ -602,7 +602,6 @@ void JsVlcPlayer::onFrameReady()
             // Check if playback was resumed while getting frame.
             if( p.is_playing() ) {
                 doPauseAtTime();
-
                 _getFrameState = EGetFrameState::GETTING;
             }
             break;
@@ -782,7 +781,7 @@ void JsVlcPlayer::doPauseAtTime() {
     vlc::player& p = player();
 
     p.pause();
-    p.playback().set_time( _getFrameTime );
+    p.playback().set_time( _getFrameAtTime );
 }
 
 void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
@@ -905,7 +904,7 @@ void JsVlcPlayer::setPosition( double position )
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     if( _isPlaying )
         player().playback().set_position( static_cast<float>( position ) );
@@ -928,7 +927,7 @@ void JsVlcPlayer::setTime( double time )
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     if( _isPlaying )
         player().playback().set_time( _currentTime );
@@ -992,7 +991,7 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying )
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     vlc::player& p = player();
 
@@ -1017,18 +1016,18 @@ void JsVlcPlayer::getFrameAtTime( libvlc_time_t time )
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
     _getFrameState = EGetFrameState::GETTING;
-    _getFrameTime = time;
+    _getFrameAtTime = time;
 
     vlc::player& p = player();
     p.play();
-    p.playback().set_time( _getFrameTime );
+    p.playback().set_time( _getFrameAtTime );
 }
 
 void JsVlcPlayer::play()
 {
     _isPlaying = true;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     player().play();
 }
@@ -1037,7 +1036,7 @@ void JsVlcPlayer::pause()
 {
     _isPlaying = false;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     player().pause();
 }
@@ -1046,7 +1045,7 @@ void JsVlcPlayer::togglePause()
 {
     _isPlaying = !_isPlaying;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     player().togglePause();
 }
@@ -1057,7 +1056,7 @@ void JsVlcPlayer::stop()
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
     _getFrameState = EGetFrameState::NOT_USED;
-    _getFrameTime = InvalidTime;
+    _getFrameAtTime = InvalidTime;
 
     player().stop();
 }
