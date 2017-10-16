@@ -64,6 +64,7 @@ public:
 
     bool playing();
     double length();
+    double frames();
     unsigned state();
 
     v8::Local<v8::Value> getVideoFrame();
@@ -77,6 +78,12 @@ public:
 
     double time();
     void setTime( double );
+
+    double frame();
+    void setFrame( double );
+
+    void previousFrame();
+    void nextFrame();
 
     unsigned volume();
     void setVolume( unsigned );

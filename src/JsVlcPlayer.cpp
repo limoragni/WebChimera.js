@@ -219,6 +219,7 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
 
     SET_RO_PROPERTY( instanceTemplate, "playing", &JsVlcPlayer::playing );
     SET_RO_PROPERTY( instanceTemplate, "length", &JsVlcPlayer::length );
+    SET_RO_PROPERTY( instanceTemplate, "frames", &JsVlcPlayer::frames );
     SET_RO_PROPERTY( instanceTemplate, "state", &JsVlcPlayer::state );
 
     SET_RO_PROPERTY( instanceTemplate, "input", &JsVlcPlayer::input );
@@ -233,6 +234,7 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_RW_PROPERTY( instanceTemplate, "pixelFormat", &JsVlcPlayer::pixelFormat, &JsVlcPlayer::setPixelFormat );
     SET_RW_PROPERTY( instanceTemplate, "position", &JsVlcPlayer::position, &JsVlcPlayer::setPosition );
     SET_RW_PROPERTY( instanceTemplate, "time", &JsVlcPlayer::time, &JsVlcPlayer::setTime );
+    SET_RW_PROPERTY( instanceTemplate, "frame", &JsVlcPlayer::frame, &JsVlcPlayer::setFrame );
     SET_RW_PROPERTY( instanceTemplate, "volume", &JsVlcPlayer::volume, &JsVlcPlayer::setVolume );
     SET_RW_PROPERTY( instanceTemplate, "mute", &JsVlcPlayer::muted, &JsVlcPlayer::setMuted );
 
@@ -242,6 +244,8 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_METHOD( constructorTemplate, "togglePause", &JsVlcPlayer::togglePause );
     SET_METHOD( constructorTemplate, "stop",  &JsVlcPlayer::stop );
     SET_METHOD( constructorTemplate, "toggleMute", &JsVlcPlayer::toggleMute );
+    SET_METHOD( constructorTemplate, "previousFrame", &JsVlcPlayer::previousFrame );
+    SET_METHOD( constructorTemplate, "nextFrame", &JsVlcPlayer::nextFrame );
 
     SET_METHOD( constructorTemplate, "close", &JsVlcPlayer::close );
 
@@ -847,6 +851,13 @@ double JsVlcPlayer::length()
     return static_cast<double>( player().playback().get_length() );
 }
 
+double JsVlcPlayer::frames()
+{
+    vlc::playback& playback = player().playback();
+
+    return static_cast<double>( static_cast<float>( playback.get_length() ) / playback.get_fps() );
+}
+
 unsigned JsVlcPlayer::state()
 {
     return player().get_state();
@@ -896,7 +907,7 @@ void JsVlcPlayer::setPosition( double position )
     _getFrameState = EGetFrameState::NOT_USED;
     _getFrameTime = InvalidTime;
 
-    if (_isPlaying)
+    if( _isPlaying )
         player().playback().set_position( static_cast<float>( position ) );
     else
         getFrameAtTime( _currentTime );
@@ -923,6 +934,36 @@ void JsVlcPlayer::setTime( double time )
         player().playback().set_time( _currentTime );
     else
         getFrameAtTime( _currentTime );
+}
+
+double JsVlcPlayer::frame()
+{
+    return std::floor( static_cast<float>( time() ) / player().playback().get_fps() );
+}
+
+void JsVlcPlayer::setFrame( double frame )
+{
+    assert( frame >= 0.0 && frame <= frames() );
+
+    setTime( frame * player().playback().get_fps() );
+}
+
+void JsVlcPlayer::previousFrame()
+{
+    pause();
+
+    double iFrame = frame();
+    if( iFrame > 0 )
+        setFrame( iFrame - 1 );
+}
+
+void JsVlcPlayer::nextFrame()
+{
+    pause();
+
+    double iFrame = frame();
+    if( iFrame < frames() - 1 )
+        setFrame(iFrame + 1);
 }
 
 unsigned JsVlcPlayer::volume()
@@ -961,9 +1002,9 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying )
         _isPlaying = startPlaying;
 
         if( startPlaying )
-          p.play( idx );
+            p.play( idx );
         else
-          getFrameAtTime( _currentTime );
+            getFrameAtTime( _currentTime );
     }
     else {
         _isPlaying = false;
