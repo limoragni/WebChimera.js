@@ -188,5 +188,5 @@ private:
     libvlc_time_t _lastTimeGlobalFrameReady;
 
     EGetFrameState _getFrameState;
-    libvlc_time_t _getFrameTime;
+    libvlc_time_t _getFrameAtTime;
 };
