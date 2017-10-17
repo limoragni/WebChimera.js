@@ -757,10 +757,15 @@ void JsVlcPlayer::updateCurrentTime() {
         const libvlc_time_t playbackTime = player().playback().get_time();
         if( _lastTimeFrameReady == playbackTime ) {
             _currentTime += currentTimeGlobal - _lastTimeGlobalFrameReady;
+        
+            const libvlc_time_t length = player().playback().get_length();
+            _currentTime = std::min( _currentTime, length );
         }
         else {
-            _currentTime = playbackTime;
             _lastTimeFrameReady = playbackTime;
+
+            if( playbackTime > _currentTime)
+                _currentTime = playbackTime;
       }
     }
 
@@ -1018,6 +1023,8 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying )
 
 void JsVlcPlayer::getFrameAtTime( libvlc_time_t time )
 {
+    assert( time >= 0 && time < player().playback().get_length() );
+
     _currentTime = time;
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
