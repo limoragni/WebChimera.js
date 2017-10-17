@@ -289,7 +289,8 @@ void JsVlcPlayer::closeAll()
 }
 
 JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8::Array>& vlcOpts ) :
-    _libvlc( nullptr )
+    _libvlc( nullptr ),
+    _lastTimeFrameReady( 0 )
 {
     Wrap( thisObject );
 
@@ -417,6 +418,7 @@ inline int _vscprintf( const char* format, va_list argptr )
 
 void JsVlcPlayer::log_event( int level, const libvlc_log_t *ctx, const char *fmt, va_list args )
 {
+#if defined(_DEBUG)
     va_list argsCopy;
     va_copy( argsCopy, args );
     int messageSize = _vscprintf( fmt, argsCopy );
@@ -437,6 +439,7 @@ void JsVlcPlayer::log_event( int level, const libvlc_log_t *ctx, const char *fmt
     _asyncDataGuard.unlock();
 
     uv_async_send( &_async );
+#endif
 }
 
 void JsVlcPlayer::handleAsync()
@@ -568,8 +571,14 @@ void JsVlcPlayer::onFrameReady()
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope( isolate );
 
-    assert( !_jsFrameBuffer.IsEmpty() ); //FIXME! maybe it worth add condition here
-    callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+    const bool isPlaying = player().is_playing();
+    const libvlc_time_t timeFrameReady = player().playback().get_time();
+    if (isPlaying || timeFrameReady != _lastTimeFrameReady) {
+      _lastTimeFrameReady = timeFrameReady;
+
+      assert(!_jsFrameBuffer.IsEmpty()); //FIXME! maybe it worth add condition here
+      callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+    }
 }
 
 void JsVlcPlayer::onFrameCleanup()
