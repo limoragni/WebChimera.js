@@ -1077,6 +1077,10 @@ void JsVlcPlayer::play()
 
 void JsVlcPlayer::playReverse()
 {
+    // Avoid creating more than one thread to do the same.
+    if( _reversePlayback )
+        return;
+
     _isPlaying = true;
     _reversePlayback = true;
 
@@ -1101,6 +1105,7 @@ void JsVlcPlayer::playReverse()
 void JsVlcPlayer::pause()
 {
     _isPlaying = false;
+    _reversePlayback = false;
 
     player().pause();
 }
@@ -1108,6 +1113,7 @@ void JsVlcPlayer::pause()
 void JsVlcPlayer::togglePause()
 {
     _isPlaying = !_isPlaying;
+    _reversePlayback = false;
 
     player().togglePause();
 }
@@ -1115,8 +1121,8 @@ void JsVlcPlayer::togglePause()
 void JsVlcPlayer::stop()
 {
     _isPlaying = false;
-    setRateReverse( 1.0 );
     _reversePlayback = false;
+    setRateReverse( 1.0 );
 
     setCurrentTime( 0 );
     player().stop();
