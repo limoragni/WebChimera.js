@@ -28,6 +28,9 @@ public:
     double rate();
     void setRate( double );
 
+    double rateReverse();
+    void setRateReverse( double );
+
 
 private:
     static void jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args );
@@ -37,4 +40,6 @@ private:
     static v8::Persistent<v8::Function> _jsConstructor;
 
     JsVlcPlayer* _jsPlayer;
+
+    double _rateReverse;
 };

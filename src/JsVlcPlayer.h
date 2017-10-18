@@ -98,8 +98,8 @@ public:
     void setMuted( bool );
 
     void load( const std::string& mrl, bool startPlaying );
-    void getFrameAtTime( libvlc_time_t time );
     void play();
+    void playReverse();
     void pause();
     void togglePause();
     void stop();
@@ -150,9 +150,15 @@ private:
     void callCallback( Callbacks_e callback,
                        std::initializer_list<v8::Local<v8::Value> > list = std::initializer_list<v8::Local<v8::Value> >() );
 
-    void updateCurrentTime();
+    void loadVideoAtTime( libvlc_time_t time );
+    void doPauseAtLoadTime();
     void doCallCallback();
-    void doPauseAtTime();
+
+    void updateCurrentTime();
+    void setCurrentTime( libvlc_time_t time );
+
+    double rateReverse();
+    void setRateReverse( double rateReverse );
 
 protected:
     void* onFrameSetup( const RV32VideoFrame& ) override;
@@ -161,16 +167,17 @@ protected:
     void onFrameCleanup() override;
 
 private:
-    enum class EGetFrameState
+    enum class ELoadVideoState
     {
-        NOT_USED,
+        UNLOADED,
         GETTING,
-        SENT
+        LOADED
     };
 
     static v8::Persistent<v8::Function> _jsConstructor;
     static std::set<JsVlcPlayer*> _instances;
 
+    static const unsigned MaxSanityChecks = 5;
     static const libvlc_time_t InvalidTime = ~0;
 
     libvlc_instance_t* _libvlc;
@@ -200,11 +207,15 @@ private:
     uv_timer_t _errorTimer;
 
     bool _isPlaying;
+    bool _reversePlayback;
+
     libvlc_time_t _currentTime;
+    bool _pausedFrameLoaded;
 
     libvlc_time_t _lastTimeFrameReady;
     libvlc_time_t _lastTimeGlobalFrameReady;
 
-    EGetFrameState _getFrameState;
-    libvlc_time_t _getFrameAtTime;
+    ELoadVideoState _loadVideoState;
+    libvlc_time_t _loadVideoAtTime;
+    unsigned _videoLoadedSanityChecks;
 };

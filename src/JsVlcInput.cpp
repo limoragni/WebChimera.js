@@ -37,6 +37,9 @@ void JsVlcInput::initJsApi()
     SET_RW_PROPERTY( instanceTemplate, "rate",
                      &JsVlcInput::rate,
                      &JsVlcInput::setRate );
+    SET_RW_PROPERTY( instanceTemplate, "rateReverse",
+                     &JsVlcInput::rateReverse,
+                     &JsVlcInput::setRateReverse );
 
     Local<Function> constructor = constructorTemplate->GetFunction();
     _jsConstructor.Reset( isolate, constructor );
@@ -82,14 +85,17 @@ void JsVlcInput::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
 }
 
 JsVlcInput::JsVlcInput( v8::Local<v8::Object>& thisObject, JsVlcPlayer* jsPlayer ) :
-    _jsPlayer( jsPlayer )
+    _jsPlayer( jsPlayer ),
+    _rateReverse( 1.0 )
 {
     Wrap( thisObject );
+
+    _jsPlayer->setInput( *this );
 }
 
 double JsVlcInput::length()
 {
-    return static_cast<double>( _jsPlayer->player().playback().get_length() );
+    return _jsPlayer->length();
 }
 
 double JsVlcInput::fps()
@@ -137,3 +143,12 @@ void JsVlcInput::setRate( double rate )
     _jsPlayer->player().playback().set_rate( static_cast<float>( rate ) );
 }
 
+double JsVlcInput::rateReverse()
+{
+    return _rateReverse;
+}
+
+void JsVlcInput::setRateReverse( double rateReverse )
+{
+    _rateReverse = rateReverse;
+}
