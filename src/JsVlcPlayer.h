@@ -14,6 +14,12 @@
 
 #include "VlcVideoOutput.h"
 
+class JsVlcInput;
+class JsVlcAudio;
+class JsVlcVideo;
+class JsVlcSubtitles;
+class JsVlcPlaylist;
+
 class JsVlcPlayer :
     public node::ObjectWrap,
     private VlcVideoOutput,
@@ -105,6 +111,12 @@ public:
     v8::Local<v8::Object> subtitles();
     v8::Local<v8::Object> playlist();
 
+    void setInput( JsVlcInput& input );
+    void setAudio( JsVlcAudio& audio );
+    void setVideo( JsVlcVideo& video );
+    void setSubtitles( JsVlcSubtitles& subtitles );
+    void setPlaylist( JsVlcPlaylist& playlist );
+
     vlc::player& player()
         { return _player; }
 
@@ -178,6 +190,12 @@ private:
     v8::UniquePersistent<v8::Object> _jsVideo;
     v8::UniquePersistent<v8::Object> _jsSubtitles;
     v8::UniquePersistent<v8::Object> _jsPlaylist;
+
+    JsVlcInput* _cppInput;
+    JsVlcAudio* _cppAudio;
+    JsVlcVideo* _cppVideo;
+    JsVlcSubtitles* _cppSubtitles;
+    JsVlcPlaylist* _cppPlaylist;
 
     uv_timer_t _errorTimer;
 

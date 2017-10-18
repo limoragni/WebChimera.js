@@ -98,6 +98,8 @@ JsVlcAudio::JsVlcAudio( v8::Local<v8::Object>& thisObject, JsVlcPlayer* jsPlayer
     _jsPlayer( jsPlayer )
 {
     Wrap( thisObject );
+
+    _jsPlayer->setAudio( *this );
 }
 
 std::string JsVlcAudio::description( uint32_t index )

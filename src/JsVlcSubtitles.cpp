@@ -76,6 +76,8 @@ JsVlcSubtitles::JsVlcSubtitles( v8::Local<v8::Object>& thisObject, JsVlcPlayer* 
     _jsPlayer( jsPlayer )
 {
     Wrap( thisObject );
+
+    _jsPlayer->setSubtitles( *this );
 }
 
 std::string JsVlcSubtitles::description( uint32_t index )

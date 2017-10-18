@@ -100,6 +100,7 @@ JsVlcPlaylist::JsVlcPlaylist( v8::Local<v8::Object>& thisObject, JsVlcPlayer* js
 {
     Wrap( thisObject );
 
+    _jsPlayer->setPlaylist( *this );
     _jsItems = JsVlcPlaylistItems::create( *jsPlayer );
 }
 

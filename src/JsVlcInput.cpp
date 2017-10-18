@@ -99,7 +99,7 @@ double JsVlcInput::fps()
 
 unsigned JsVlcInput::state()
 {
-    return _jsPlayer->player().get_state();
+    return _jsPlayer->state();
 }
 
 bool JsVlcInput::hasVout()
@@ -109,22 +109,22 @@ bool JsVlcInput::hasVout()
 
 double JsVlcInput::position()
 {
-    return _jsPlayer->player().playback().get_position();
+    return _jsPlayer->position();
 }
 
 void JsVlcInput::setPosition( double position )
 {
-    _jsPlayer->player().playback().set_position( static_cast<float>( position ) );
+    _jsPlayer->setPosition( position );
 }
 
 double JsVlcInput::time()
 {
-    return static_cast<double>( _jsPlayer->player().playback().get_time() );
+    return _jsPlayer->time();
 }
 
 void JsVlcInput::setTime( double time )
 {
-    return _jsPlayer->player().playback().set_time( static_cast<libvlc_time_t>( time ) );
+    return _jsPlayer->setTime( time );
 }
 
 double JsVlcInput::rate()

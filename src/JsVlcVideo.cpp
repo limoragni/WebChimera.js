@@ -83,6 +83,7 @@ JsVlcVideo::JsVlcVideo( v8::Local<v8::Object>& thisObject, JsVlcPlayer* jsPlayer
 {
     Wrap( thisObject );
 
+    _jsPlayer->setVideo( *this );
     _jsDeinterlace = JsVlcDeinterlace::create( *jsPlayer );
 }
 

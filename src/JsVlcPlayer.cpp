@@ -296,6 +296,11 @@ void JsVlcPlayer::closeAll()
 
 JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8::Array>& vlcOpts ) :
     _libvlc( nullptr ),
+    _cppInput( nullptr ),
+    _cppAudio( nullptr ),
+    _cppVideo( nullptr ),
+    _cppSubtitles( nullptr ),
+    _cppPlaylist( nullptr ),
     _isPlaying( false ),
     _currentTime( 0 ),
     _lastTimeFrameReady( InvalidTime ),
@@ -1102,4 +1107,29 @@ v8::Local<v8::Object> JsVlcPlayer::subtitles()
 v8::Local<v8::Object> JsVlcPlayer::playlist()
 {
     return v8::Local<v8::Object>::New( v8::Isolate::GetCurrent(), _jsPlaylist );
+}
+
+void JsVlcPlayer::setInput( JsVlcInput& input )
+{
+    _cppInput = &input;
+}
+
+void JsVlcPlayer::setAudio( JsVlcAudio& audio )
+{
+    _cppAudio = &audio;
+}
+
+void JsVlcPlayer::setVideo( JsVlcVideo& video )
+{
+    _cppVideo = &video;
+}
+
+void JsVlcPlayer::setSubtitles( JsVlcSubtitles& subtitles )
+{
+    _cppSubtitles = &subtitles;
+}
+
+void JsVlcPlayer::setPlaylist( JsVlcPlaylist& playlist )
+{
+    _cppPlaylist = &playlist;
 }
