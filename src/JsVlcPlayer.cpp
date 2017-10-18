@@ -599,7 +599,7 @@ void JsVlcPlayer::onFrameReady()
             }
             else {
                 const libvlc_time_t playbackTime = p.playback().get_time();
-                if( playbackTime == _currentTime && !_pausedFrameLoaded) {
+                if( playbackTime == _currentTime && !_pausedFrameLoaded ) {
                     _pausedFrameLoaded = true;
                     doCallCallback();
                 }
@@ -609,21 +609,6 @@ void JsVlcPlayer::onFrameReady()
                 }
             }
             break;
-
-        /*case ELoadVideoState::LOADED:
-            // Check if playback was resumed while getting frame.
-            if( p.is_playing() ) {
-                doPauseAtTime();
-                _loadVideoState = ELoadVideoState::GETTING;
-            }
-            else if( libvlc_Paused == p.get_state() ) {
-                const libvlc_time_t playbackTime = p.playback().get_time();
-                if (playbackTime == _loadVideoAtTime) {
-                    doCallCallback();
-                    _loadVideoState = ELoadVideoState::LOADED;
-                }
-            }
-            break;*/
         case ELoadVideoState::GETTING:
             vlc::playback& playback = p.playback();
             const libvlc_time_t playbackTime = playback.get_time();
@@ -839,10 +824,10 @@ void JsVlcPlayer::updateCurrentTime() {
         else {
             _lastTimeFrameReady = playbackTime;
 
-            if( playbackTime > _currentTime) {
+            if( playbackTime > _currentTime ) {
                 _currentTime = playbackTime;
             }
-      }
+        }
     }
 
     _lastTimeGlobalFrameReady = currentTimeGlobal;
