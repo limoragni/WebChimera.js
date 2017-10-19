@@ -1,10 +1,9 @@
 #include "JsVlcPlayer.h"
 
 #include <chrono>
-#include <string.h>
 #include <cmath>
+#include <string.h>
 #include <thread>
-#include "JsVlcPlayer.h"
 
 #include "NodeTools.h"
 #include "JsVlcInput.h"
