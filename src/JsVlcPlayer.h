@@ -69,6 +69,7 @@ public:
                                Callbacks_e callback );
 
     bool playing();
+    bool playingReverse();
     double length();
     double frames();
     unsigned state();
