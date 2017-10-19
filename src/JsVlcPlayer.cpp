@@ -2,7 +2,9 @@
 
 #include <chrono>
 #include <string.h>
+#include <cmath>
 #include <thread>
+#include "JsVlcPlayer.h"
 
 #include "NodeTools.h"
 #include "JsVlcInput.h"
@@ -817,7 +819,7 @@ void JsVlcPlayer::updateCurrentTime() {
         const libvlc_time_t playbackTime = player().playback().get_time();
         if( _lastTimeFrameReady == playbackTime ) {
             _currentTime += currentTimeGlobal - _lastTimeGlobalFrameReady;
-        
+
             const libvlc_time_t length = player().playback().get_length();
             _currentTime = std::min( _currentTime, length );
         }
@@ -977,7 +979,7 @@ double JsVlcPlayer::time()
 {
     assert( _currentTime >= 0.0 && _currentTime <= length() );
 
-    return static_cast<double>( _currentTime ); 
+    return static_cast<double>( _currentTime );
 }
 
 void JsVlcPlayer::setTime( double time )
