@@ -220,6 +220,7 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_CALLBACK_PROPERTY( instanceTemplate, "onLogMessage", CB_LogMessage );
 
     SET_RO_PROPERTY( instanceTemplate, "playing", &JsVlcPlayer::playing );
+    SET_RO_PROPERTY( instanceTemplate, "playingReverse", &JsVlcPlayer::playingReverse );
     SET_RO_PROPERTY( instanceTemplate, "length", &JsVlcPlayer::length );
     SET_RO_PROPERTY( instanceTemplate, "frames", &JsVlcPlayer::frames );
     SET_RO_PROPERTY( instanceTemplate, "state", &JsVlcPlayer::state );
@@ -913,6 +914,11 @@ void JsVlcPlayer::setJsCallback( v8::Local<v8::String> property,
 bool JsVlcPlayer::playing()
 {
     return _isPlaying;
+}
+
+bool JsVlcPlayer::playingReverse()
+{
+    return _reversePlayback;
 }
 
 double JsVlcPlayer::length()
