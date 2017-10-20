@@ -170,9 +170,8 @@ protected:
 private:
     enum class ELoadVideoState
     {
-        UNLOADED,
-        GETTING,
-        LOADED
+        LOADED,
+        GETTING
     };
 
     static v8::Persistent<v8::Function> _jsConstructor;

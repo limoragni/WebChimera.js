@@ -311,7 +311,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _pausedFrameLoaded( false ),
     _lastTimeFrameReady( InvalidTime ),
     _lastTimeGlobalFrameReady( InvalidTime ),
-    _loadVideoState( ELoadVideoState::UNLOADED ),
+    _loadVideoState( ELoadVideoState::LOADED ),
     _loadVideoAtTime( InvalidTime ),
     _videoLoadedSanityChecks( MaxSanityChecks )
 {
