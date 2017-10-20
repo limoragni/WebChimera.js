@@ -177,6 +177,7 @@ private:
     static v8::Persistent<v8::Function> _jsConstructor;
     static std::set<JsVlcPlayer*> _instances;
 
+    // Sanity checks are used because LibVLC sometimes sends a previous frame, not the right one that we want.
     static const unsigned MaxSanityChecks = 5;
     static const libvlc_time_t InvalidTime = ~0;
 
@@ -211,6 +212,7 @@ private:
 
     libvlc_time_t _currentTime;
     bool _pausedFrameLoaded;
+    unsigned _pausedFrameLoadedSanityChecks;
 
     libvlc_time_t _lastTimeFrameReady;
     libvlc_time_t _lastTimeGlobalFrameReady;

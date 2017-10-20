@@ -309,6 +309,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _reversePlayback( false ),
     _currentTime( 0 ),
     _pausedFrameLoaded( false ),
+    _pausedFrameLoadedSanityChecks( MaxSanityChecks ),
     _lastTimeFrameReady( InvalidTime ),
     _lastTimeGlobalFrameReady( InvalidTime ),
     _loadVideoState( ELoadVideoState::LOADED ),
@@ -596,17 +597,21 @@ void JsVlcPlayer::onFrameReady()
             updateCurrentTime();
 
             if( _isPlaying ) {
+                _videoLoadedSanityChecks = MaxSanityChecks;
                 _pausedFrameLoaded = false;
                 doCallCallback();
             }
             else {
                 const libvlc_time_t playbackTime = p.playback().get_time();
                 if( playbackTime == _currentTime && !_pausedFrameLoaded ) {
-                    _pausedFrameLoaded = true;
                     doCallCallback();
+
+                    if( 0u == --_pausedFrameLoadedSanityChecks )
+                        _pausedFrameLoaded = true;
                 }
-                else {
+                else if ( playbackTime != _currentTime ) {
                     // It means that there have been a seek.
+                    _videoLoadedSanityChecks = MaxSanityChecks;
                     _pausedFrameLoaded = false;
                 }
             }
