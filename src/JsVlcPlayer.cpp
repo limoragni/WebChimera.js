@@ -931,7 +931,7 @@ double JsVlcPlayer::frames()
 {
     vlc::playback& playback = player().playback();
 
-    return std::round( static_cast<double>( static_cast<float>( playback.get_length() ) / playback.get_fps() ) );
+    return std::round( static_cast<double>( static_cast<float>( playback.get_length() ) * playback.get_fps() / 1000.0f ) );
 }
 
 unsigned JsVlcPlayer::state()
@@ -996,7 +996,7 @@ void JsVlcPlayer::setTime( double time )
 
 double JsVlcPlayer::frame()
 {
-    const double iFrame = std::round( static_cast<double>( static_cast<float>( time() ) / player().playback().get_fps() ) );
+    const double iFrame = std::round( static_cast<double>( static_cast<float>( time() ) * player().playback().get_fps() / 1000.0f ) );
 
     return std::min( iFrame, frames() );
 }
