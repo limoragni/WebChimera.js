@@ -309,9 +309,10 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _reversePlayback( false ),
     _currentTime( 0 ),
     _pausedFrameLoaded( false ),
+    _pausedFrameLoadedSanityChecks( MaxSanityChecks ),
     _lastTimeFrameReady( InvalidTime ),
     _lastTimeGlobalFrameReady( InvalidTime ),
-    _loadVideoState( ELoadVideoState::UNLOADED ),
+    _loadVideoState( ELoadVideoState::LOADED ),
     _loadVideoAtTime( InvalidTime ),
     _videoLoadedSanityChecks( MaxSanityChecks )
 {
@@ -596,17 +597,21 @@ void JsVlcPlayer::onFrameReady()
             updateCurrentTime();
 
             if( _isPlaying ) {
+                _videoLoadedSanityChecks = MaxSanityChecks;
                 _pausedFrameLoaded = false;
                 doCallCallback();
             }
             else {
                 const libvlc_time_t playbackTime = p.playback().get_time();
                 if( playbackTime == _currentTime && !_pausedFrameLoaded ) {
-                    _pausedFrameLoaded = true;
                     doCallCallback();
+
+                    if( 0u == --_pausedFrameLoadedSanityChecks )
+                        _pausedFrameLoaded = true;
                 }
-                else {
+                else if ( playbackTime != _currentTime ) {
                     // It means that there have been a seek.
+                    _videoLoadedSanityChecks = MaxSanityChecks;
                     _pausedFrameLoaded = false;
                 }
             }
@@ -778,8 +783,6 @@ void JsVlcPlayer::callCallback( Callbacks_e callback,
 
 void JsVlcPlayer::loadVideoAtTime( libvlc_time_t time )
 {
-    assert( time >= 0 && time <= player().playback().get_length() );
-
     setCurrentTime( time );
 
     _loadVideoState = ELoadVideoState::GETTING;
@@ -837,9 +840,7 @@ void JsVlcPlayer::updateCurrentTime() {
 
 void JsVlcPlayer::setCurrentTime( libvlc_time_t time )
 {
-    assert( time >= 0 && time <= player().playback().get_length() );
-
-    _currentTime = time;
+    _currentTime = std::max( 0ll, std::min( time, player().playback().get_length() ) );
 
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
@@ -930,7 +931,7 @@ double JsVlcPlayer::frames()
 {
     vlc::playback& playback = player().playback();
 
-    return std::round( static_cast<double>( static_cast<float>( playback.get_length() ) / playback.get_fps() ) );
+    return std::round( static_cast<double>( static_cast<float>( playback.get_length() ) * playback.get_fps() / 1000.0f ) );
 }
 
 unsigned JsVlcPlayer::state()
@@ -974,7 +975,7 @@ double JsVlcPlayer::position()
 
 void JsVlcPlayer::setPosition( double position )
 {
-    assert( position >= 0.0 && position <= 1.0 );
+    position = std::max( 0.0, std::min( position, 1.0 ) );
 
     setCurrentTime( static_cast<libvlc_time_t>( position * length() ) );
     player().playback().set_position( static_cast<float>( position ) );
@@ -989,22 +990,20 @@ double JsVlcPlayer::time()
 
 void JsVlcPlayer::setTime( double time )
 {
-    assert( time >= 0.0 && time <= length() );
-
     setCurrentTime( static_cast<libvlc_time_t>( time ) );
     player().playback().set_time( _currentTime );
 }
 
 double JsVlcPlayer::frame()
 {
-    const double iFrame = std::round( static_cast<double>( static_cast<float>( time() ) / player().playback().get_fps() ) );
+    const double iFrame = std::round( static_cast<double>( static_cast<float>( time() ) * player().playback().get_fps() / 1000.0f ) );
 
     return std::min( iFrame, frames() );
 }
 
 void JsVlcPlayer::setFrame( double frame )
 {
-    assert( frame >= 0.0 && frame <= frames() );
+    frame = std::max( 0.0, std::min( frame, frames() ) );
 
     setTime( frame * player().playback().get_fps() );
 }
