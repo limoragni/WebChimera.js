@@ -821,7 +821,7 @@ void JsVlcPlayer::updateCurrentTime() {
     if( _isPlaying && !_reversePlayback ) {
         const libvlc_time_t playbackTime = player().playback().get_time();
         if( _lastTimeFrameReady == playbackTime ) {
-            _currentTime += currentTimeGlobal - _lastTimeGlobalFrameReady;
+            _currentTime += static_cast<libvlc_time_t>( static_cast<double>( currentTimeGlobal - _lastTimeGlobalFrameReady ) * _cppInput->rate() );
 
             const libvlc_time_t length = player().playback().get_length();
             _currentTime = std::min( _currentTime, length );
