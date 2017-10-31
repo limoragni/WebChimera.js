@@ -312,7 +312,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _pausedFrameLoadedSanityChecks( MaxSanityChecks ),
     _lastTimeFrameReady( InvalidTime ),
     _lastTimeGlobalFrameReady( InvalidTime ),
-    _loadVideoState( ELoadVideoState::LOADED ),
+    _loadVideoState( ELoadVideoState::UNLOADED ),
     _loadVideoAtTime( InvalidTime ),
     _videoLoadedSanityChecks( MaxSanityChecks )
 {
@@ -1063,10 +1063,13 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying )
     if( idx >= 0 ) {
         _isPlaying = startPlaying;
 
-        if( startPlaying )
+        if (startPlaying) {
+            _loadVideoState = ELoadVideoState::LOADED;
             p.play( idx );
-        else
+        }
+        else {
             loadVideoAtTime( _currentTime );
+        }
     }
     else {
         _isPlaying = false;
@@ -1126,6 +1129,7 @@ void JsVlcPlayer::togglePause()
 
 void JsVlcPlayer::stop()
 {
+    _loadVideoState = ELoadVideoState::UNLOADED;
     _isPlaying = false;
     _reversePlayback = false;
     setRateReverse( 1.0 );

@@ -170,6 +170,7 @@ protected:
 private:
     enum class ELoadVideoState
     {
+        UNLOADED,
         LOADED,
         GETTING
     };
