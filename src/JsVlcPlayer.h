@@ -98,7 +98,7 @@ public:
     bool muted();
     void setMuted( bool );
 
-    void load( const std::string& mrl, bool startPlaying );
+    void load( const std::string& mrl, bool startPlaying, unsigned atTime );
     void play();
     void playReverse();
     void pause();
@@ -151,8 +151,6 @@ private:
     void callCallback( Callbacks_e callback,
                        std::initializer_list<v8::Local<v8::Value> > list = std::initializer_list<v8::Local<v8::Value> >() );
 
-    void loadVideoAtTime( libvlc_time_t time );
-    void doPauseAtLoadTime();
     void doCallCallback();
 
     void updateCurrentTime();
@@ -212,13 +210,12 @@ private:
     bool _reversePlayback;
 
     libvlc_time_t _currentTime;
-    bool _pausedFrameLoaded;
-    unsigned _pausedFrameLoadedSanityChecks;
+    bool _performSeek;
+    unsigned _seekedFrameLoadedSanityChecks;
 
     libvlc_time_t _lastTimeFrameReady;
     libvlc_time_t _lastTimeGlobalFrameReady;
 
     ELoadVideoState _loadVideoState;
-    libvlc_time_t _loadVideoAtTime;
-    unsigned _videoLoadedSanityChecks;
+    float _bufferingValue;
 };
