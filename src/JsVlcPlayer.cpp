@@ -780,7 +780,11 @@ void JsVlcPlayer::doCallCallback() {
     HandleScope scope( isolate );
 
     assert( !_jsFrameBuffer.IsEmpty() ); //FIXME! maybe it worth add condition here
-    callCallback( CB_FrameReady, { Local<Value>::New( Isolate::GetCurrent(), _jsFrameBuffer ) } );
+    callCallback( CB_FrameReady, {
+      Local<Value>::New( isolate, _jsFrameBuffer ),
+      Number::New( isolate, frame() ),
+      Number::New( isolate, time() )
+    } );
 }
 
 void JsVlcPlayer::updateCurrentTime() {
