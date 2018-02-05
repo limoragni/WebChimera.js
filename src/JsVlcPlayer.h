@@ -159,6 +159,8 @@ private:
     double rateReverse();
     void setRateReverse( double rateReverse );
 
+    double decimalFrame();
+
 protected:
     void* onFrameSetup( const RV32VideoFrame& ) override;
     void* onFrameSetup( const I420VideoFrame& ) override;
