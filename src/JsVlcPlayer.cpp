@@ -988,7 +988,7 @@ void JsVlcPlayer::setFrame( double frame )
 {
     frame = std::max( 0.0, std::min( frame, frames() ) );
 
-    setTime( frame * player().playback().get_fps() );
+    setTime( frame * 1000.0f / player().playback().get_fps() );
 }
 
 void JsVlcPlayer::previousFrame()
