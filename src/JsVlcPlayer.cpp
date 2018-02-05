@@ -831,6 +831,10 @@ void JsVlcPlayer::setRateReverse( double rateReverse )
     _cppInput->setRateReverse( rateReverse );
 }
 
+double JsVlcPlayer::decimalFrame() {
+  return static_cast<double>( static_cast<float>( time() ) / ( 1000.0f / player().playback().get_fps() ) );
+}
+
 void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
 {
     using namespace v8;
@@ -979,7 +983,7 @@ void JsVlcPlayer::setTime( double time )
 
 double JsVlcPlayer::frame()
 {
-    const double iFrame = std::round( static_cast<double>( static_cast<float>( time() ) * player().playback().get_fps() / 1000.0f ) );
+    const double iFrame = std::round( decimalFrame() );
 
     return std::min( iFrame, frames() );
 }
@@ -995,7 +999,7 @@ void JsVlcPlayer::previousFrame()
 {
     pause();
 
-    const double iFrame = static_cast<double>( static_cast<float>( time() ) / player().playback().get_fps() );
+    const double iFrame = decimalFrame();
     if( iFrame > 0.0 )
         setFrame( std::ceil( iFrame ) - 1 );
 }
@@ -1006,7 +1010,7 @@ void JsVlcPlayer::nextFrame()
 
     vlc::playback& playback = player().playback();
     const double frames = static_cast<double>( static_cast<float>( playback.get_length() ) / playback.get_fps() );
-    const double iFrame = static_cast<double>( static_cast<float>( time() ) / playback.get_fps() );
+    const double iFrame = decimalFrame();
     if( iFrame < frames - 1.0 )
         setFrame( std::floor( iFrame ) + 1 );
     else
