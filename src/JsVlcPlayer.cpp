@@ -1013,7 +1013,7 @@ void JsVlcPlayer::nextFrame()
     pause();
 
     vlc::playback& playback = player().playback();
-    const double frames = static_cast<double>( static_cast<float>( playback.get_length() ) / playback.get_fps() );
+    const double frames = static_cast<double>( static_cast<float>( playback.get_length() ) / ( 1000.0f / playback.get_fps() ) );
     const double iFrame = decimalFrame();
     if( iFrame < frames - 1.0 )
         setFrame( std::floor( iFrame ) + 1 );
@@ -1092,11 +1092,11 @@ void JsVlcPlayer::playReverse()
         {
             while( _isPlaying && _reversePlayback ) {
                 vlc::playback& playback = player().playback();
-                const double fps = static_cast<double>( playback.get_fps() );
-                const libvlc_time_t msToGoBack = static_cast<libvlc_time_t>( fps * rateReverse() );
+                const double msPerFrame = static_cast<double>( 1000.0f / playback.get_fps() );
+                const libvlc_time_t msToGoBack = static_cast<libvlc_time_t>( msPerFrame * rateReverse() );
 
                 setTime( static_cast<double>( _currentTime - msToGoBack ) );
-                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( fps ) ) );
+                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame ) ) );
             }
         }
     );
