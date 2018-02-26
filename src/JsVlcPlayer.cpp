@@ -1097,8 +1097,14 @@ void JsVlcPlayer::playReverse()
                 const double msPerFrame = static_cast<double>( 1000.0f / playback.get_fps() );
                 const libvlc_time_t msToGoBack = static_cast<libvlc_time_t>( msPerFrame * rateReverse() );
 
-                setTime( static_cast<double>( _currentTime - msToGoBack ) );
-                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame ) ) );
+                if( _currentTime - msToGoBack >= 0 ) {
+                    setTime( static_cast<double>( _currentTime - msToGoBack ) );
+                    std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame ) ) );
+                }
+                else {
+                    _isPlaying = false;
+                    _reversePlayback = false;
+                }
             }
         }
     );
