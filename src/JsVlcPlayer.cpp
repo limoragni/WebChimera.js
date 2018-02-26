@@ -603,7 +603,7 @@ void JsVlcPlayer::onFrameReady()
             else if( _performSeek ) {
               vlc::playback& playback = p.playback();
               const libvlc_time_t playbackTime = playback.get_time();
-              if( 100.0f == _bufferingValue && playbackTime == _currentTime ) {
+              if( playbackTime == _currentTime ) {
                   doCallCallback();
 
                   if( 0u == --_seekedFrameLoadedSanityChecks )
@@ -619,14 +619,12 @@ void JsVlcPlayer::onFrameReady()
             if( libvlc_Paused == p.get_state() ) {
                 vlc::playback& playback = p.playback();
                 const libvlc_time_t playbackTime = playback.get_time();
-                if( 100.0f == _bufferingValue ) {
-                    if( playbackTime == _currentTime ) {
-                        doCallCallback();
-                        _loadVideoState = ELoadVideoState::LOADED;
-                    }
-                    else
-                        playback.set_time( _currentTime );
+                if( playbackTime == _currentTime ) {
+                    doCallCallback();
+                    _loadVideoState = ELoadVideoState::LOADED;
                 }
+                else
+                    playback.set_time( _currentTime );
             }
             else {
                 p.pause();
