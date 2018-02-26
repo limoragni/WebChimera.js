@@ -1043,6 +1043,7 @@ void JsVlcPlayer::setMuted( bool mute )
 
 void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTime )
 {
+    stop();
     setCurrentTime( static_cast<libvlc_time_t>( atTime ) );
     setRateReverse( 1.0 );
     _reversePlayback = false;
