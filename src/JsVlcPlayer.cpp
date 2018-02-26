@@ -805,7 +805,8 @@ void JsVlcPlayer::updateCurrentTime() {
             _lastTimeFrameReady = playbackTime;
 
             if( playbackTime > _currentTime ) {
-                _currentTime = playbackTime;
+                const libvlc_time_t length = player().playback().get_length();
+                _currentTime = std::min( playbackTime, length );
             }
         }
     }
