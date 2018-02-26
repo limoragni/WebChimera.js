@@ -38,6 +38,7 @@ const char* JsVlcPlayer::callbackNames[] =
     "Stopped",
     "Forward",
     "Backward",
+    "BeginReached",
     "EndReached",
     "EncounteredError",
 
@@ -208,6 +209,7 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     SET_CALLBACK_PROPERTY( instanceTemplate, "onForward", CB_MediaPlayerForward );
     SET_CALLBACK_PROPERTY( instanceTemplate, "onBackward", CB_MediaPlayerBackward );
     SET_CALLBACK_PROPERTY( instanceTemplate, "onEncounteredError", CB_MediaPlayerEncounteredError );
+    SET_CALLBACK_PROPERTY( instanceTemplate, "onBeginReached", CB_MediaPlayerBeginReached );
     SET_CALLBACK_PROPERTY( instanceTemplate, "onEndReached", CB_MediaPlayerEndReached );
     SET_CALLBACK_PROPERTY( instanceTemplate, "onStopped", CB_MediaPlayerStopped );
 
@@ -590,6 +592,8 @@ void* JsVlcPlayer::onFrameSetup( const I420VideoFrame& videoFrame )
 void JsVlcPlayer::onFrameReady()
 {
     vlc::player& p = player();
+    vlc::playback& playback = p.playback();
+    const libvlc_time_t playbackTime = playback.get_time();
 
     switch( _loadVideoState ) {
         case ELoadVideoState::LOADED:
@@ -599,10 +603,16 @@ void JsVlcPlayer::onFrameReady()
                 _seekedFrameLoadedSanityChecks = MaxSanityChecks;
                 _performSeek = false;
                 doCallCallback();
+
+                // Stop reverse playback when gets the beginning.
+                if( _reversePlayback && playbackTime == 0 ) {
+                    callCallback( CB_MediaPlayerBeginReached );
+
+                    _isPlaying = false;
+                    _reversePlayback = false;
+                }
             }
             else if( _performSeek ) {
-              vlc::playback& playback = p.playback();
-              const libvlc_time_t playbackTime = playback.get_time();
               if( playbackTime == _currentTime ) {
                   doCallCallback();
 
@@ -617,8 +627,6 @@ void JsVlcPlayer::onFrameReady()
             break;
         case ELoadVideoState::GETTING:
             if( libvlc_Paused == p.get_state() ) {
-                vlc::playback& playback = p.playback();
-                const libvlc_time_t playbackTime = playback.get_time();
                 if( playbackTime == _currentTime ) {
                     doCallCallback();
                     _loadVideoState = ELoadVideoState::LOADED;
@@ -816,9 +824,9 @@ void JsVlcPlayer::setCurrentTime( libvlc_time_t time )
 {
     const libvlc_time_t videoLength = player().playback().get_length();
     if( 0 != videoLength )
-        _currentTime = std::max(0ll, std::min(time, videoLength));
+        _currentTime = std::max( 0ll, std::min( time, videoLength ) );
     else
-        _currentTime = time;
+        _currentTime = std::max( 0ll, time );
 
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
@@ -1095,13 +1103,13 @@ void JsVlcPlayer::playReverse()
                 const double msPerFrame = static_cast<double>( 1000.0f / playback.get_fps() );
                 const libvlc_time_t msToGoBack = static_cast<libvlc_time_t>( msPerFrame * rateReverse() );
 
-                if( _currentTime - msToGoBack >= 0 ) {
+                const libvlc_time_t playbackTime = playback.get_time();
+                if( playbackTime > 0 ) {
                     setTime( static_cast<double>( _currentTime - msToGoBack ) );
                     std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame ) ) );
                 }
                 else {
-                    _isPlaying = false;
-                    _reversePlayback = false;
+                    break;
                 }
             }
         }

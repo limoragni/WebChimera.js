@@ -39,6 +39,7 @@ class JsVlcPlayer :
         CB_MediaPlayerStopped,
         CB_MediaPlayerForward,
         CB_MediaPlayerBackward,
+        CB_MediaPlayerBeginReached,
         CB_MediaPlayerEndReached,
         CB_MediaPlayerEncounteredError,
 
