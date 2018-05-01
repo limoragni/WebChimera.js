@@ -1065,6 +1065,7 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTi
         p.play( idx );
         if( startPlaying ) {
           _loadVideoState = ELoadVideoState::LOADED;
+          p.playback().set_time( _currentTime );
         }
         else {
           _loadVideoState = ELoadVideoState::GETTING;
