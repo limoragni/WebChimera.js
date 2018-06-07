@@ -824,9 +824,9 @@ void JsVlcPlayer::setCurrentTime( libvlc_time_t time )
 {
     const libvlc_time_t videoLength = player().playback().get_length();
     if( 0 != videoLength )
-        _currentTime = std::max( 0ll, std::min( time, videoLength ) );
+        _currentTime = std::max( 0l, std::min( time, videoLength ) );
     else
-        _currentTime = std::max( 0ll, time );
+        _currentTime = std::max( 0l, time );
 
     _lastTimeFrameReady = InvalidTime;
     _lastTimeGlobalFrameReady = InvalidTime;
