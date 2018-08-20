@@ -307,6 +307,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _cppVideo( nullptr ),
     _cppSubtitles( nullptr ),
     _cppPlaylist( nullptr ),
+    _startPlaying( false ),
     _isPlaying( false ),
     _reversePlayback( false ),
     _currentTime( 0 ),
@@ -595,10 +596,10 @@ void JsVlcPlayer::onFrameReady()
     vlc::playback& playback = p.playback();
     const libvlc_time_t playbackTime = playback.get_time();
 
+    updateCurrentTime();
+
     switch( _loadVideoState ) {
         case ELoadVideoState::LOADED:
-            updateCurrentTime();
-
             if( _isPlaying ) {
                 _seekedFrameLoadedSanityChecks = MaxSanityChecks;
                 _performSeek = false;
@@ -631,6 +632,9 @@ void JsVlcPlayer::onFrameReady()
                     _loadVideoState = ELoadVideoState::LOADED;
 
                     if( _startPlaying ) {
+                        // Set the new current time taking into account the spent time loading the proper starting frame.
+                        playback.set_time( _currentTime );
+
                         _isPlaying = true;
                         p.play();
                     }
@@ -821,6 +825,13 @@ void JsVlcPlayer::updateCurrentTime() {
                 _currentTime = std::min( playbackTime, length );
             }
         }
+    }
+    else if( _loadVideoState == ELoadVideoState::GETTING && _startPlaying ) {
+        // Take into account spent time loading the proper starting frame.
+        _currentTime += static_cast<libvlc_time_t>( static_cast<double>( currentTimeGlobal - _lastTimeGlobalFrameReady ) * _cppInput->rate() );
+
+        const libvlc_time_t length = player().playback().get_length();
+        _currentTime = std::min( _currentTime, length );
     }
 
     _lastTimeGlobalFrameReady = currentTimeGlobal;
@@ -1061,6 +1072,13 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTi
     setRateReverse( 1.0 );
     _isPlaying = false;
     _reversePlayback = false;
+
+    using namespace std::chrono;
+
+    milliseconds msSinceEpoch = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+    libvlc_time_t loadTime = static_cast<libvlc_time_t>(msSinceEpoch.count());
+    _lastTimeFrameReady = loadTime;
+    _lastTimeGlobalFrameReady = loadTime;
 
     vlc::player& p = player();
 
