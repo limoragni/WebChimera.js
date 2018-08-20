@@ -209,6 +209,7 @@ private:
 
     uv_timer_t _errorTimer;
 
+    bool _startPlaying;
     bool _isPlaying;
     bool _reversePlayback;
 
