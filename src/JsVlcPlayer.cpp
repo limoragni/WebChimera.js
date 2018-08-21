@@ -307,8 +307,10 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _cppVideo( nullptr ),
     _cppSubtitles( nullptr ),
     _cppPlaylist( nullptr ),
+    _startPlaying( false ),
     _isPlaying( false ),
     _reversePlayback( false ),
+    _loadingTime( 0 ),
     _currentTime( 0 ),
     _performSeek( false ),
     _seekedFrameLoadedSanityChecks( MaxSanityChecks ),
@@ -595,10 +597,10 @@ void JsVlcPlayer::onFrameReady()
     vlc::playback& playback = p.playback();
     const libvlc_time_t playbackTime = playback.get_time();
 
+    updateCurrentTime();
+
     switch( _loadVideoState ) {
         case ELoadVideoState::LOADED:
-            updateCurrentTime();
-
             if( _isPlaying ) {
                 _seekedFrameLoadedSanityChecks = MaxSanityChecks;
                 _performSeek = false;
@@ -628,8 +630,19 @@ void JsVlcPlayer::onFrameReady()
         case ELoadVideoState::GETTING:
             if( libvlc_Paused == p.get_state() ) {
                 if( playbackTime == _currentTime ) {
-                    doCallCallback();
                     _loadVideoState = ELoadVideoState::LOADED;
+
+                    if( _startPlaying ) {
+                        // Set the new current time taking into account the spent time loading the proper starting frame.
+                        const libvlc_time_t length = player().playback().get_length();
+                        const libvlc_time_t time = std::min( _currentTime + _loadingTime, length );
+                        playback.set_time( time );
+
+                        _isPlaying = true;
+                        p.play();
+                    }
+                    else
+                        doCallCallback();
                 }
                 else
                     playback.set_time( _currentTime );
@@ -816,6 +829,10 @@ void JsVlcPlayer::updateCurrentTime() {
             }
         }
     }
+    else if( _loadVideoState == ELoadVideoState::GETTING && _startPlaying ) {
+        // Take into account spent time loading the proper starting frame.
+        _loadingTime += static_cast<libvlc_time_t>( static_cast<double>( currentTimeGlobal - _lastTimeGlobalFrameReady ) * _cppInput->rate() );
+    }
 
     _lastTimeGlobalFrameReady = currentTimeGlobal;
 }
@@ -828,8 +845,12 @@ void JsVlcPlayer::setCurrentTime( libvlc_time_t time )
     else
         _currentTime = std::max( 0ll, time );
 
-    _lastTimeFrameReady = InvalidTime;
-    _lastTimeGlobalFrameReady = InvalidTime;
+    using namespace std::chrono;
+
+    milliseconds msSinceEpoch = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+    libvlc_time_t nowTime = static_cast<libvlc_time_t>(msSinceEpoch.count());
+    _lastTimeFrameReady = nowTime;
+    _lastTimeGlobalFrameReady = nowTime;
 }
 
 double JsVlcPlayer::rateReverse()
@@ -1053,27 +1074,29 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTi
     stop();
     setCurrentTime( static_cast<libvlc_time_t>( atTime ) );
     setRateReverse( 1.0 );
+
+    _loadingTime = 0;
+    _isPlaying = false;
     _reversePlayback = false;
+
+    using namespace std::chrono;
+
+    milliseconds msSinceEpoch = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+    libvlc_time_t nowTime = static_cast<libvlc_time_t>(msSinceEpoch.count());
+    _lastTimeFrameReady = nowTime;
+    _lastTimeGlobalFrameReady = nowTime;
 
     vlc::player& p = player();
 
     p.clear_items();
     const int idx = p.add_media( mrl.c_str() );
     if( idx >= 0 ) {
-        _isPlaying = startPlaying;
+        _startPlaying = startPlaying;
+        _loadVideoState = ELoadVideoState::GETTING;
 
         p.play( idx );
-        if( startPlaying ) {
-          _loadVideoState = ELoadVideoState::LOADED;
-          p.playback().set_time( _currentTime );
-        }
-        else {
-          _loadVideoState = ELoadVideoState::GETTING;
-          p.pause();
-        }
-    }
-    else {
-        _isPlaying = false;
+        p.playback().set_time( _currentTime );
+        p.pause();
     }
 }
 
@@ -1137,12 +1160,14 @@ void JsVlcPlayer::togglePause()
 void JsVlcPlayer::stop()
 {
     _loadVideoState = ELoadVideoState::UNLOADED;
+    _loadingTime = 0;
+    _startPlaying = false;
     _isPlaying = false;
     _reversePlayback = false;
     setRateReverse( 1.0 );
 
-    setCurrentTime( 0 );
     player().stop();
+    setCurrentTime( 0 );
 }
 
 void JsVlcPlayer::toggleMute()

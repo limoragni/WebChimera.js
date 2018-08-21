@@ -209,9 +209,11 @@ private:
 
     uv_timer_t _errorTimer;
 
+    bool _startPlaying;
     bool _isPlaying;
     bool _reversePlayback;
 
+    libvlc_time_t _loadingTime;
     libvlc_time_t _currentTime;
     bool _performSeek;
     unsigned _seekedFrameLoadedSanityChecks;
