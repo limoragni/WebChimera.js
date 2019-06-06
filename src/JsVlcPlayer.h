@@ -99,7 +99,7 @@ public:
     bool muted();
     void setMuted( bool );
 
-    void load( const std::string& mrl, bool startPlaying, unsigned atTime );
+    void load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime );
     void play();
     void playReverse();
     void pause();
@@ -210,6 +210,7 @@ private:
     uv_timer_t _errorTimer;
 
     bool _startPlaying;
+    bool _startPlayingReverse;
     bool _isPlaying;
     bool _reversePlayback;
 

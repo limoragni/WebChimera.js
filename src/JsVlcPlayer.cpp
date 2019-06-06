@@ -308,6 +308,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _cppSubtitles( nullptr ),
     _cppPlaylist( nullptr ),
     _startPlaying( false ),
+    _startPlayingReverse( false ),
     _isPlaying( false ),
     _reversePlayback( false ),
     _loadingTime( 0 ),
@@ -632,15 +633,17 @@ void JsVlcPlayer::onFrameReady()
                 if( playbackTime == _currentTime ) {
                     _loadVideoState = ELoadVideoState::LOADED;
 
-                    if( _startPlaying ) {
+                    if( _startPlaying || _startPlayingReverse ) {
                         // Set the new current time taking into account the spent time loading the proper starting frame.
                         const libvlc_time_t length = player().playback().get_length();
                         const libvlc_time_t time = std::min( _currentTime + _loadingTime, length );
                         playback.set_time( time );
-
-                        _isPlaying = true;
-                        p.play();
                     }
+
+                    if( _startPlaying && !_startPlayingReverse )
+                        play();
+                    else if( _startPlayingReverse )
+                        playReverse();
                     else
                         doCallCallback();
                 }
@@ -829,9 +832,12 @@ void JsVlcPlayer::updateCurrentTime() {
             }
         }
     }
-    else if( _loadVideoState == ELoadVideoState::GETTING && _startPlaying ) {
+    else if( _loadVideoState == ELoadVideoState::GETTING ) {
         // Take into account spent time loading the proper starting frame.
-        _loadingTime += static_cast<libvlc_time_t>( static_cast<double>( currentTimeGlobal - _lastTimeGlobalFrameReady ) * _cppInput->rate() );
+        if ( _startPlayingReverse )
+          _loadingTime -= static_cast<libvlc_time_t>(static_cast<double>(currentTimeGlobal - _lastTimeGlobalFrameReady) * _cppInput->rateReverse());
+        else if ( _startPlaying )
+          _loadingTime += static_cast<libvlc_time_t>( static_cast<double>( currentTimeGlobal - _lastTimeGlobalFrameReady ) * _cppInput->rate() );
     }
 
     _lastTimeGlobalFrameReady = currentTimeGlobal;
@@ -882,13 +888,19 @@ void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
             startPlaying = args[1]->ToBoolean()->Value();
         }
 
-        unsigned atTime = 0;
+        bool startPlayingReverse = false;
         if( args.Length() >= 3 ) {
-          assert(args[2]->IsUint32());
-          atTime = args[2]->ToUint32()->Value();
+          assert( args[2]->IsBoolean() );
+          startPlayingReverse = args[2]->ToBoolean()->Value();
         }
 
-        jsPlayer->load( *mrl, startPlaying, atTime );
+        unsigned atTime = 0;
+        if( args.Length() >= 4 ) {
+          assert( args[3]->IsUint32() );
+          atTime = args[3]->ToUint32()->Value();
+        }
+
+        jsPlayer->load( *mrl, startPlaying, startPlayingReverse, atTime );
     }
 }
 
@@ -1069,7 +1081,7 @@ void JsVlcPlayer::setMuted( bool mute )
     player().audio().set_mute( mute );
 }
 
-void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTime )
+void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime )
 {
     stop();
     setCurrentTime( static_cast<libvlc_time_t>( atTime ) );
@@ -1092,6 +1104,7 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, unsigned atTi
     const int idx = p.add_media( mrl.c_str() );
     if( idx >= 0 ) {
         _startPlaying = startPlaying;
+        _startPlayingReverse = startPlayingReverse;
         _loadVideoState = ELoadVideoState::GETTING;
 
         p.play( idx );
