@@ -1085,7 +1085,6 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPla
 {
     stop();
     setCurrentTime( static_cast<libvlc_time_t>( atTime ) );
-    setRateReverse( 1.0 );
 
     _loadingTime = 0;
     _isPlaying = false;
@@ -1135,15 +1134,29 @@ void JsVlcPlayer::playReverse()
     std::thread reverseUpdateThread(
         [ this ]()
         {
+            using namespace std::chrono;
+
+            libvlc_time_t lastTime = 0;
+            libvlc_time_t currentTime = 0;
+            vlc::playback& playback = player().playback();
+            const double msPerFrame = static_cast<double>(1000.0f / playback.get_fps());
+
             while( _isPlaying && _reversePlayback ) {
-                vlc::playback& playback = player().playback();
-                const double msPerFrame = static_cast<double>( 1000.0f / playback.get_fps() );
-                const libvlc_time_t msToGoBack = static_cast<libvlc_time_t>( msPerFrame * rateReverse() );
+                libvlc_time_t msToGoBack;
+
+                lastTime = currentTime;
+                milliseconds msSinceEpoch = duration_cast<milliseconds>( system_clock::now().time_since_epoch() );
+                currentTime = static_cast<libvlc_time_t>( msSinceEpoch.count() );
+
+                if( 0 == lastTime )
+                    msToGoBack = static_cast<libvlc_time_t>( msPerFrame * rateReverse() );
+                else
+                    msToGoBack = static_cast<libvlc_time_t>( static_cast<double>( currentTime - lastTime ) * rateReverse() );
 
                 const libvlc_time_t playbackTime = playback.get_time();
                 if( playbackTime > 0 ) {
-                    setTime( static_cast<double>( _currentTime - msToGoBack ) );
-                    std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame ) ) );
+                    setTime(  std::max( 0.0, static_cast<double>( _currentTime - msToGoBack ) ) );
+                    std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<libvlc_time_t>( msPerFrame / rateReverse()) ) );
                 }
                 else {
                     break;
@@ -1177,7 +1190,6 @@ void JsVlcPlayer::stop()
     _startPlaying = false;
     _isPlaying = false;
     _reversePlayback = false;
-    setRateReverse( 1.0 );
 
     player().stop();
     setCurrentTime( 0 );
