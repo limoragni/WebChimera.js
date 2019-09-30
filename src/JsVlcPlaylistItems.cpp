@@ -17,7 +17,7 @@ void JsVlcPlaylistItems::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcPlaylistItems", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcPlaylistItems", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -30,7 +30,7 @@ void JsVlcPlaylistItems::initJsApi()
     SET_METHOD( constructorTemplate, "clear", &JsVlcPlaylistItems::clear );
     SET_METHOD( constructorTemplate, "remove", &JsVlcPlaylistItems::remove );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

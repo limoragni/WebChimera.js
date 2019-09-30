@@ -14,30 +14,30 @@ void JsVlcAudio::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcVideo", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcVideo", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
     instanceTemplate->SetInternalFieldCount( 1 );
 
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Error", v8::String::kInternalizedString ),
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Error", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_Error ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Stereo", v8::String::kInternalizedString ),
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Stereo", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_Stereo ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "ReverseStereo", v8::String::kInternalizedString ),
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
+    protoTemplate->Set( String::NewFromUtf8( isolate, "ReverseStereo", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_RStereo ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Left", v8::String::kInternalizedString ),
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Left", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_Left ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Right", v8::String::kInternalizedString ),
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Right", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_Right ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Dolby", v8::String::kInternalizedString ),
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Dolby", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, libvlc_AudioChannel_Dolbys ),
-                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
+                        static_cast<PropertyAttribute>( ReadOnly | DontDelete ) );
 
     SET_RO_INDEXED_PROPERTY( instanceTemplate, &JsVlcAudio::description );
 
@@ -51,7 +51,7 @@ void JsVlcAudio::initJsApi()
 
     SET_METHOD( constructorTemplate, "toggleMute", &JsVlcAudio::toggleMute );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

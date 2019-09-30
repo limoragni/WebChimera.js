@@ -17,7 +17,7 @@ void JsVlcInput::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcInput", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcInput", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -41,7 +41,7 @@ void JsVlcInput::initJsApi()
                      &JsVlcInput::rateReverse,
                      &JsVlcInput::setRateReverse );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

@@ -16,19 +16,19 @@ void JsVlcPlaylist::initJsApi()
     HandleScope scope( isolate );
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
-    constructorTemplate->SetClassName( String::NewFromUtf8( isolate, "VlcPlaylist", v8::String::kInternalizedString ) );
+    constructorTemplate->SetClassName( String::NewFromUtf8( isolate, "VlcPlaylist", NewStringType::kInternalized ).ToLocalChecked());
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
     instanceTemplate->SetInternalFieldCount( 1 );
 
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Normal", v8::String::kInternalizedString ),
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Normal", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, static_cast<int>( PlaybackMode::Normal ) ),
                         static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Loop", v8::String::kInternalizedString ),
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Loop", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, static_cast<int>( PlaybackMode::Loop ) ),
                         static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    protoTemplate->Set( String::NewFromUtf8( isolate, "Single", v8::String::kInternalizedString ),
+    protoTemplate->Set( String::NewFromUtf8( isolate, "Single", NewStringType::kInternalized ).ToLocalChecked(),
                         Integer::New( isolate, static_cast<int>( PlaybackMode::Single ) ),
                         static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 
@@ -52,7 +52,7 @@ void JsVlcPlaylist::initJsApi()
     SET_METHOD( constructorTemplate, "removeItem",  &JsVlcPlaylist::removeItem );
     SET_METHOD( constructorTemplate, "advanceItem",  &JsVlcPlaylist::advanceItem );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

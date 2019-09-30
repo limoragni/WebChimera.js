@@ -85,7 +85,7 @@ inline v8::Local<v8::Value> ToJsValue( double value )
 
 inline v8::Local<v8::Value> ToJsValue( const std::string& value )
 {
-    return v8::String::NewFromUtf8( v8::Isolate::GetCurrent(), value.c_str() );
+    return v8::String::NewFromUtf8( v8::Isolate::GetCurrent(), value.c_str() ).ToLocalChecked();
 }
 
 template<typename C, typename ... A, size_t ... I >
@@ -184,30 +184,30 @@ void GetIndexedPropertyValue( R ( C::* getter ) ( uint32_t index ),
         }                                                        \
     )
 
-#define SET_RO_PROPERTY( objTemplate, name, member )                                         \
-    objTemplate->SetAccessor(                                                                \
-        String::NewFromUtf8( Isolate::GetCurrent(), name, v8::String::kInternalizedString ), \
-        [] ( v8::Local<v8::String> /*property*/,                                             \
-             const v8::PropertyCallbackInfo<v8::Value>& info )                               \
-        {                                                                                    \
-            GetPropertyValue( member, info );                                                \
-        }                                                                                    \
+#define SET_RO_PROPERTY( objTemplate, name, member )                                                           \
+    objTemplate->SetAccessor(                                                                                  \
+        String::NewFromUtf8( Isolate::GetCurrent(), name, v8::NewStringType::kInternalized ).ToLocalChecked(), \
+        [] ( v8::Local<v8::String> /*property*/,                                                               \
+             const v8::PropertyCallbackInfo<v8::Value>& info )                                                 \
+        {                                                                                                      \
+            GetPropertyValue( member, info );                                                                  \
+        }                                                                                                      \
     )
 
-#define SET_RW_PROPERTY( objTemplate, name, getter, setter )                                 \
-    objTemplate->SetAccessor(                                                                \
-        String::NewFromUtf8( Isolate::GetCurrent(), name, v8::String::kInternalizedString ), \
-        [] ( v8::Local<v8::String> /*property*/,                                             \
-             const v8::PropertyCallbackInfo<v8::Value>& info )                               \
-        {                                                                                    \
-            GetPropertyValue( getter, info );                                                \
-        },                                                                                   \
-        [] ( v8::Local<v8::String> /*property*/,                                             \
-             v8::Local<v8::Value> value,                                                     \
-             const v8::PropertyCallbackInfo<void>& info )                                    \
-        {                                                                                    \
-            SetPropertyValue( setter, value, info );                                         \
-        }                                                                                    \
+#define SET_RW_PROPERTY( objTemplate, name, getter, setter )                                                   \
+    objTemplate->SetAccessor(                                                                                  \
+        String::NewFromUtf8( Isolate::GetCurrent(), name, v8::NewStringType::kInternalized ).ToLocalChecked(), \
+        [] ( v8::Local<v8::String> /*property*/,                                                               \
+             const v8::PropertyCallbackInfo<v8::Value>& info )                                                 \
+        {                                                                                                      \
+            GetPropertyValue( getter, info );                                                                  \
+        },                                                                                                     \
+        [] ( v8::Local<v8::String> /*property*/,                                                               \
+             v8::Local<v8::Value> value,                                                                       \
+             const v8::PropertyCallbackInfo<void>& info )                                                      \
+        {                                                                                                      \
+            SetPropertyValue( setter, value, info );                                                           \
+        }                                                                                                      \
     )
 
 v8::Local<v8::Object> Require( const char* module );
