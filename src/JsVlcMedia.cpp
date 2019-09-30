@@ -64,12 +64,14 @@ v8::Local<v8::Object> JsVlcMedia::create( JsVlcPlayer& player,
     Isolate* isolate = Isolate::GetCurrent();
     EscapableHandleScope scope( isolate );
 
+    Local<Context> context = isolate->GetCurrentContext();
+
     Local<Function> constructor =
         Local<Function>::New( isolate, _jsConstructor );
 
     Local<Value> argv[] = { player.handle(), External::New( isolate, const_cast<vlc::media*>( &media ) ) };
 
-    return scope.Escape( constructor->NewInstance( sizeof( argv ) / sizeof( argv[0] ), argv ) );
+    return scope.Escape( constructor->NewInstance( context, sizeof( argv ) / sizeof( argv[0] ), argv ).ToLocalChecked() );
 }
 
 void JsVlcMedia::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
@@ -92,11 +94,12 @@ void JsVlcMedia::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
             args.GetReturnValue().Set( thisObject );
         }
     } else {
+        Local<Context> context = isolate->GetCurrentContext();
         Local<Function> constructor =
             Local<Function>::New( isolate, _jsConstructor );
         Local<Value> argv[] = { args[0], args[1] };
         args.GetReturnValue().Set(
-            constructor->NewInstance( sizeof( argv ) / sizeof( argv[0] ), argv ) );
+            constructor->NewInstance( context, sizeof( argv ) / sizeof( argv[0] ), argv ).ToLocalChecked() );
     }
 }
 
