@@ -62,12 +62,14 @@ v8::UniquePersistent<v8::Object> JsVlcAudio::create( JsVlcPlayer& player )
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope( isolate );
 
+    Local<Context> context = isolate->GetCurrentContext();
+
     Local<Function> constructor =
         Local<Function>::New( isolate, _jsConstructor );
 
     Local<Value> argv[] = { player.handle() };
 
-    return { isolate, constructor->NewInstance( sizeof( argv ) / sizeof( argv[0] ), argv ) };
+    return { isolate, constructor->NewInstance( context, sizeof( argv ) / sizeof( argv[0] ), argv ).ToLocalChecked() };
 }
 
 void JsVlcAudio::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
@@ -86,11 +88,12 @@ void JsVlcAudio::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
             args.GetReturnValue().Set( thisObject );
         }
     } else {
+        Local<Context> context = isolate->GetCurrentContext();
         Local<Function> constructor =
             Local<Function>::New( isolate, _jsConstructor );
         Local<Value> argv[] = { args[0] };
         args.GetReturnValue().Set(
-            constructor->NewInstance( sizeof( argv ) / sizeof( argv[0] ), argv ) );
+            constructor->NewInstance( context, sizeof( argv ) / sizeof( argv[0] ), argv ).ToLocalChecked() );
     }
 }
 

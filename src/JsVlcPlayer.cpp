@@ -4,6 +4,7 @@
 #include <cmath>
 #include <string.h>
 #include <thread>
+#include <v8.h>
 
 #include "NodeTools.h"
 #include "JsVlcInput.h"
@@ -147,6 +148,8 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope( isolate );
 
+    Local<Context> context = isolate->GetCurrentContext();
+
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName( String::NewFromUtf8( isolate, "VlcPlayer", v8::String::kInternalizedString ) );
 
@@ -261,10 +264,10 @@ void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
     exports->Set( String::NewFromUtf8( isolate, "VlcPlayer", v8::String::kInternalizedString ), constructor );
     exports->Set( String::NewFromUtf8( isolate, "createPlayer", v8::String::kInternalizedString ), constructor );
 
-    exports->ForceSet( String::NewFromUtf8( isolate, "vlcVersion", v8::String::kInternalizedString ),
+    exports->DefineOwnProperty( context, String::NewFromUtf8( isolate, "vlcVersion", v8::String::kInternalizedString ),
                        vlcVersion,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    exports->ForceSet( String::NewFromUtf8( isolate, "vlcChangeset", v8::String::kInternalizedString ),
+    exports->DefineOwnProperty( context, String::NewFromUtf8( isolate, "vlcChangeset", v8::String::kInternalizedString ),
                        vlcChangeset,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 }
@@ -286,10 +289,11 @@ void JsVlcPlayer::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
         JsVlcPlayer* jsPlayer = new JsVlcPlayer( thisObject, options );
         args.GetReturnValue().Set( jsPlayer->handle() );
     } else {
+        Local<Context> context = isolate->GetCurrentContext();
         Local<Value> argv[] = { args[0] };
         Local<Function> constructor =
             Local<Function>::New( isolate, _jsConstructor );
-        args.GetReturnValue().Set( constructor->NewInstance( sizeof( argv ) / sizeof( argv[0] ), argv ) );
+        args.GetReturnValue().Set( constructor->NewInstance( context, sizeof( argv ) / sizeof( argv[0] ), argv ).ToLocalChecked() );
     }
 }
 
@@ -338,12 +342,13 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _errorTimer.data = this;
 
     v8::Isolate* isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     _jsEventEmitter.Reset( isolate,
         v8::Local<v8::Function>::Cast(
             Require( "events" )->Get(
                 v8::String::NewFromUtf8( isolate,
                                          "EventEmitter",
-                                         v8::String::kInternalizedString ) ) )->NewInstance() );
+                                         v8::String::kInternalizedString ) ) )->NewInstance( context ).ToLocalChecked() );
 
     initLibvlc( vlcOpts );
 
@@ -507,20 +512,21 @@ void* JsVlcPlayer::onFrameSetup( const RV32VideoFrame& videoFrame )
             String::NewFromUtf8( isolate,
                                  "Uint8Array",
                                  v8::String::kInternalizedString ) );
+    Local<Context> context = isolate->GetCurrentContext();
     Local<Value> argv[] =
         { Integer::NewFromUnsigned( isolate, videoFrame.size() ) };
     Local<Uint8Array> jsArray =
-        Handle<Uint8Array>::Cast( Handle<Function>::Cast( abv )->NewInstance( 1, argv ) );
+        Handle<Uint8Array>::Cast( Handle<Function>::Cast( abv )->NewInstance( context, 1, argv ).ToLocalChecked() );
 
     Local<Integer> jsWidth = Integer::New( isolate, videoFrame.width() );
     Local<Integer> jsHeight = Integer::New( isolate, videoFrame.height() );
     Local<Integer> jsPixelFormat = Integer::New( isolate, static_cast<int>( PixelFormat::RV32 ) );
 
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "width", v8::String::kInternalizedString ), jsWidth,
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "width", v8::String::kInternalizedString ), jsWidth,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "height", v8::String::kInternalizedString ), jsHeight,
+    jsArray->DefineOwnProperty( context,  String::NewFromUtf8( isolate, "height", v8::String::kInternalizedString ), jsHeight,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "pixelFormat", v8::String::kInternalizedString ), jsPixelFormat,
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "pixelFormat", v8::String::kInternalizedString ), jsPixelFormat,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 
     _jsFrameBuffer.Reset( isolate, jsArray );
@@ -556,28 +562,29 @@ void* JsVlcPlayer::onFrameSetup( const I420VideoFrame& videoFrame )
             String::NewFromUtf8( isolate,
                                  "Uint8Array",
                                  v8::String::kInternalizedString ) );
+    Local<Context> context = isolate->GetCurrentContext();
     Local<Value> argv[] =
         { Integer::NewFromUnsigned( isolate, videoFrame.size() ) };
     Local<Uint8Array> jsArray =
-        Handle<Uint8Array>::Cast( Handle<Function>::Cast( abv )->NewInstance( 1, argv ) );
+        Handle<Uint8Array>::Cast( Handle<Function>::Cast( abv )->NewInstance( context, 1, argv ).ToLocalChecked() );
 
     Local<Integer> jsWidth = Integer::New( isolate, videoFrame.width() );
     Local<Integer> jsHeight = Integer::New( isolate, videoFrame.height() );
     Local<Integer> jsPixelFormat = Integer::New( isolate, static_cast<int>( PixelFormat::I420 ) );
 
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "width", v8::String::kInternalizedString ),
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "width", v8::String::kInternalizedString ),
                        jsWidth,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "height", v8::String::kInternalizedString ),
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "height", v8::String::kInternalizedString ),
                        jsHeight,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "pixelFormat", v8::String::kInternalizedString ),
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "pixelFormat", v8::String::kInternalizedString ),
                        jsPixelFormat,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "uOffset", v8::String::kInternalizedString ),
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "uOffset", v8::String::kInternalizedString ),
                        Integer::New( isolate, videoFrame.uPlaneOffset() ),
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
-    jsArray->ForceSet( String::NewFromUtf8( isolate, "vOffset", v8::String::kInternalizedString ),
+    jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "vOffset", v8::String::kInternalizedString ),
                        Integer::New( isolate, videoFrame.vPlaneOffset() ),
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 
@@ -877,6 +884,9 @@ void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
 {
     using namespace v8;
 
+    Isolate* isolate = Isolate::GetCurrent();
+    Local<Context> context = isolate->GetCurrentContext();
+
     JsVlcPlayer* jsPlayer = ObjectWrap::Unwrap<JsVlcPlayer>( args.Holder() );
 
     assert( args.Length() >= 1 );
@@ -897,7 +907,7 @@ void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
         unsigned atTime = 0;
         if( args.Length() >= 4 ) {
           assert( args[3]->IsUint32() );
-          atTime = args[3]->ToUint32()->Value();
+          atTime = args[3]->ToUint32( context ).ToLocalChecked()->Value();
         }
 
         jsPlayer->load( *mrl, startPlaying, startPlayingReverse, atTime );
