@@ -15,11 +15,15 @@
     "type": "git",
     "url": "https://github.com/RSATom/WebChimera.js"
   },
+  "scripts": {
+    "install": "node rebuild.js",
+    "test": "cd test && node test.js"
+  },
   "dependencies": {
     "bindings": "~1.5.0",
     "cmake-js": "^5.3.2"
   },
-  "scripts": {
-    "install": "node rebuild.js"
+  "devDependencies": {
+    "file-url": "^2.0.2"
   }
 }
