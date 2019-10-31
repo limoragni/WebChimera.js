@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(WebChimera.js)
 
+# Set output to bin folder.
 set(OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
@@ -10,6 +11,7 @@ foreach (OUTPUT_CONFIG ${CMAKE_CONFIGURATION_TYPES})
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${OUTPUT_DIR})
 endforeach ()
 
+# Set needed flags for each platform.
 if (MSVC)
   foreach (flag_var
        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
@@ -19,9 +21,14 @@ if (MSVC)
     endif ()
   endforeach ()
 else ()
-  add_definitions( -std=c++11 )
+  add_definitions(-std=c++11)
 endif ()
 
+# Include submodules.
+include_directories(${CMAKE_JS_INC} deps)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/libvlc_wrapper)
+
+# Add source files to the library.
 file(GLOB SOURCE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   src/[^.]*.cpp
   src/[^.]*.h
@@ -29,10 +36,10 @@ file(GLOB SOURCE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   package.json
 )
 
-include_directories(${CMAKE_JS_INC} deps)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/libvlc_wrapper)
-
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+
+# Set library output suffix.
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
 # Add Visual Studio properties for testing.
 if (MSVC)
@@ -58,5 +65,5 @@ if (MSVC)
   )
 endif ()
 
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
+# Link submodules to library.
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} libvlc_wrapper)
