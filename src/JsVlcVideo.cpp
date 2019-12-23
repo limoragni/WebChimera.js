@@ -102,6 +102,7 @@ int JsVlcVideo::track()
 
 void JsVlcVideo::setTrack( unsigned track )
 {
+    _jsPlayer->setVideoTrack( track );
     _jsPlayer->player().video().set_track( track );
 }
 

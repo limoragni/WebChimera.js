@@ -250,19 +250,20 @@ unsigned VlcVideoOutput::video_format_cb( char* chroma,
         case PixelFormat::RV32: {
             std::shared_ptr<RV32VideoFrame> videoFrame( new RV32VideoFrame() );
             frameSetupEvent.reset( new RV32FrameSetupEvent( videoFrame ) );
-            _videoFrame = videoFrame;
+            _videoTracks.push_back({ nullptr, std::move( videoFrame )});
             break;
         }
         case PixelFormat::I420:
         default: {
             std::shared_ptr<I420VideoFrame> videoFrame( new I420VideoFrame() );
             frameSetupEvent.reset( new I420FrameSetupEvent( videoFrame ) );
-            _videoFrame = videoFrame;
+            _videoTracks.push_back({ nullptr, std::move( videoFrame ) });
             break;
         }
     }
 
-    const unsigned planeCount = _videoFrame->video_format_cb( chroma,
+    std::shared_ptr<VideoFrame>& videoFrame = _videoTracks.back().videoFrame;
+    const unsigned planeCount = videoFrame->video_format_cb( chroma,
                                                               width, height,
                                                               pitches, lines );
 
@@ -271,14 +272,15 @@ unsigned VlcVideoOutput::video_format_cb( char* chroma,
     _guard.unlock();
     uv_async_send( &_async );
 
-    _videoFrame->waitBuffer();
+    videoFrame->waitBuffer();
 
     return planeCount;
 }
 
 void VlcVideoOutput::video_cleanup_cb()
 {
-    _videoFrame->video_cleanup_cb();
+    for( const auto& videoTrack : _videoTracks )
+        videoTrack.videoFrame->video_cleanup_cb();
 
     _guard.lock();
     _videoEvents.emplace_back( new FrameCleanupEvent );
@@ -288,17 +290,52 @@ void VlcVideoOutput::video_cleanup_cb()
 
 void* VlcVideoOutput::video_lock_cb( void** planes )
 {
-    return _videoFrame->video_lock_cb( planes );
+   std::shared_ptr<VideoFrame> videoFrameToUse;
+
+    // Find the video track.
+    for(const auto& videoTrack : _videoTracks) {
+        if( videoTrack.id == planes) {
+          videoFrameToUse = videoTrack.videoFrame;
+            break;
+        }
+    }
+
+    // Link frame container to the video track.
+    if( !videoFrameToUse ) {
+        for( auto& videoTrack : _videoTracks ) {
+            if( !videoTrack.id ) {
+                videoTrack.id = planes;
+                videoFrameToUse = videoTrack.videoFrame;
+                break;
+            }
+        }
+    }
+
+    videoFrameToUse->video_lock_cb( planes );
+
+    return planes;
 }
 
 void VlcVideoOutput::video_unlock_cb( void* picture, void *const * planes )
 {
-    _videoFrame->video_unlock_cb( picture, planes );
+    // Find the video track.
+    for( const auto& videoTrack : _videoTracks ) {
+        if( videoTrack.id == picture) {
+            videoTrack.videoFrame->video_unlock_cb( picture, planes );
+            break;
+        }
+    }
 }
 
-void VlcVideoOutput::video_display_cb( void* /*picture*/ )
+void VlcVideoOutput::video_display_cb( void* picture )
 {
-    notifyFrameReady();
+    // Find the video track.
+    for( const auto& videoTrack : _videoTracks ) {
+        if( videoTrack.id == picture ) {
+            notifyFrameReady();
+            break;
+        }
+    }
 }
 
 void VlcVideoOutput::notifyFrameReady()

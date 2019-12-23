@@ -306,6 +306,7 @@ void JsVlcPlayer::closeAll()
 
 JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8::Array>& vlcOpts ) :
     _libvlc( nullptr ),
+    _jsCurrentFrameBuffer( nullptr ),
     _cppInput( nullptr ),
     _cppAudio( nullptr ),
     _cppVideo( nullptr ),
@@ -529,7 +530,9 @@ void* JsVlcPlayer::onFrameSetup( const RV32VideoFrame& videoFrame )
     jsArray->DefineOwnProperty( context, String::NewFromUtf8( isolate, "pixelFormat", v8::String::kInternalizedString ), jsPixelFormat,
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 
-    _jsFrameBuffer.Reset( isolate, jsArray );
+    __jsFrameBuffers.emplace_back();
+    _jsCurrentFrameBuffer = &__jsFrameBuffers.back();
+    _jsCurrentFrameBuffer->Reset( isolate, jsArray );
 
     callCallback( CB_FrameSetup, { jsWidth, jsHeight, jsPixelFormat, jsArray } );
 
@@ -588,7 +591,9 @@ void* JsVlcPlayer::onFrameSetup( const I420VideoFrame& videoFrame )
                        Integer::New( isolate, videoFrame.vPlaneOffset() ),
                        static_cast<v8::PropertyAttribute>( ReadOnly | DontDelete ) );
 
-    _jsFrameBuffer.Reset( isolate, jsArray );
+    __jsFrameBuffers.emplace_back();
+    _jsCurrentFrameBuffer = &__jsFrameBuffers.back();
+    _jsCurrentFrameBuffer->Reset( isolate, jsArray );
 
     callCallback( CB_FrameSetup, { jsWidth, jsHeight, jsPixelFormat, jsArray } );
 
@@ -808,9 +813,9 @@ void JsVlcPlayer::doCallCallback() {
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope( isolate );
 
-    assert( !_jsFrameBuffer.IsEmpty() ); //FIXME! maybe it worth add condition here
+    assert( _jsCurrentFrameBuffer && !_jsCurrentFrameBuffer->IsEmpty() ); //FIXME! maybe it worth add condition here
     callCallback( CB_FrameReady, {
-      Local<Value>::New( isolate, _jsFrameBuffer ),
+      Local<Value>::New( isolate, *_jsCurrentFrameBuffer ),
       Number::New( isolate, frame() ),
       Number::New( isolate, time() )
     } );
@@ -980,7 +985,7 @@ unsigned JsVlcPlayer::state()
 
 v8::Local<v8::Value> JsVlcPlayer::getVideoFrame()
 {
-    return v8::Local<v8::Value>::New( v8::Isolate::GetCurrent(), _jsFrameBuffer );
+    return v8::Local<v8::Value>::New( v8::Isolate::GetCurrent(), *_jsCurrentFrameBuffer );
 }
 
 v8::Local<v8::Object> JsVlcPlayer::getEventEmitter()
@@ -1089,6 +1094,25 @@ bool JsVlcPlayer::muted()
 void JsVlcPlayer::setMuted( bool mute )
 {
     player().audio().set_mute( mute );
+}
+
+unsigned JsVlcPlayer::videoTrack()
+{
+  const auto it = std::find( __jsFrameBuffers.begin(), __jsFrameBuffers.end(), *_jsCurrentFrameBuffer );
+  if( it != __jsFrameBuffers.end() )
+      return std::distance( __jsFrameBuffers.begin(), it ) + 1;
+  else
+      return 0;
+}
+
+void JsVlcPlayer::setVideoTrack( unsigned trackIndex )
+{
+    --trackIndex;
+
+    if( trackIndex >= __jsFrameBuffers.size() )
+        return;
+
+    _jsCurrentFrameBuffer = &__jsFrameBuffers[trackIndex];
 }
 
 void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime )

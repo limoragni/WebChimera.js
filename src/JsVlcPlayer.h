@@ -99,6 +99,9 @@ public:
     bool muted();
     void setMuted( bool );
 
+    unsigned videoTrack();
+    void setVideoTrack( unsigned );
+
     void load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime );
     void play();
     void playReverse();
@@ -190,7 +193,8 @@ private:
     std::mutex _asyncDataGuard;
     std::deque<std::unique_ptr<AsyncData> > _asyncData;
 
-    v8::UniquePersistent<v8::Value> _jsFrameBuffer;
+    v8::UniquePersistent<v8::Value>* _jsCurrentFrameBuffer;
+    std::vector<v8::UniquePersistent<v8::Value>> __jsFrameBuffers;
 
     v8::UniquePersistent<v8::Function> _jsCallbacks[CB_Max];
     v8::UniquePersistent<v8::Object> _jsEventEmitter;

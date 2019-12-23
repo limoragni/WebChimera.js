@@ -67,9 +67,17 @@ private:
     void notifyFrameReady();
 
 private:
+    struct VlcVideoTrackOutput
+    {
+        void* id;
+        std::shared_ptr<VideoFrame> videoFrame;
+    };
+
     PixelFormat _pixelFormat; //FIXME! maybe we need std::atomic here
     std::shared_ptr<VideoFrame> _videoFrame; //should be accessed only from decode thread
     std::shared_ptr<VideoFrame> _currentVideoFrame; //should be accessed only from gui thread
+
+    std::vector<VlcVideoTrackOutput> _videoTracks;
 
     uv_async_t _async;
     std::mutex _guard;
