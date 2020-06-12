@@ -85,7 +85,7 @@ inline v8::Local<v8::Value> ToJsValue( double value )
 
 inline v8::Local<v8::Value> ToJsValue( const std::string& value )
 {
-    return v8::String::NewFromUtf8( v8::Isolate::GetCurrent(), value.c_str() ).ToLocalChecked();
+    return v8::String::NewFromUtf8( v8::Isolate::GetCurrent(), value.c_str(), v8::NewStringType::kNormal ).ToLocalChecked();
 }
 
 template<typename C, typename ... A, size_t ... I >
