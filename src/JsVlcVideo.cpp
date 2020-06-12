@@ -17,7 +17,7 @@ void JsVlcVideo::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcVideo", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcVideo", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -35,7 +35,7 @@ void JsVlcVideo::initJsApi()
     SET_RW_PROPERTY( instanceTemplate, "saturation", &JsVlcVideo::saturation, &JsVlcVideo::setSaturation );
     SET_RW_PROPERTY( instanceTemplate, "gamma", &JsVlcVideo::gamma, &JsVlcVideo::setGamma );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

@@ -33,7 +33,7 @@ v8::Local<v8::Function> RequireFunc()
             module->Get(
                 String::NewFromUtf8( isolate,
                                      "require",
-                                     String::kInternalizedString ) ) );
+                                     NewStringType::kInternalized ).ToLocalChecked()) );
 }
 
 v8::Local<v8::Object> Require( const char* module )
@@ -44,7 +44,7 @@ v8::Local<v8::Object> Require( const char* module )
     Local<Object> global = isolate->GetCurrentContext()->Global();
 
     Local<Value> argv[] =
-        { String::NewFromUtf8( isolate, module, String::kInternalizedString ) };
+        { String::NewFromUtf8( isolate, module, NewStringType::kInternalized ).ToLocalChecked() };
 
-    return Local<Object>::Cast(  RequireFunc()->Call( global, 1, argv ) );
+    return Local<Object>::Cast( RequireFunc()->Call( isolate->GetCurrentContext(), global, 1, argv ).ToLocalChecked() );
 }

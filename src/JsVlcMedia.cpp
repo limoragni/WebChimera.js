@@ -13,7 +13,7 @@ void JsVlcMedia::initJsApi()
     HandleScope scope( isolate );
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
-    constructorTemplate->SetClassName( String::NewFromUtf8( isolate, "JsVlcMedia", v8::String::kInternalizedString ) );
+    constructorTemplate->SetClassName( String::NewFromUtf8( isolate, "JsVlcMedia", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -52,7 +52,7 @@ void JsVlcMedia::initJsApi()
     SET_METHOD( constructorTemplate, "parse", &JsVlcMedia::parse );
     SET_METHOD( constructorTemplate, "parseAsync", &JsVlcMedia::parseAsync );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

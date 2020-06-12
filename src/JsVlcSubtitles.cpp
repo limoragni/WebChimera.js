@@ -14,7 +14,7 @@ void JsVlcSubtitles::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcSubtitles", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcSubtitles", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -29,7 +29,7 @@ void JsVlcSubtitles::initJsApi()
 
     SET_METHOD( constructorTemplate, "load", &JsVlcSubtitles::load );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 

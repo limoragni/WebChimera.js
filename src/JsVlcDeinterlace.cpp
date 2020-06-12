@@ -14,7 +14,7 @@ void JsVlcDeinterlace::initJsApi()
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
-        String::NewFromUtf8( isolate, "VlcDeinterlace", v8::String::kInternalizedString ) );
+        String::NewFromUtf8( isolate, "VlcDeinterlace", NewStringType::kInternalized ).ToLocalChecked() );
 
     Local<ObjectTemplate> protoTemplate = constructorTemplate->PrototypeTemplate();
     Local<ObjectTemplate> instanceTemplate = constructorTemplate->InstanceTemplate();
@@ -23,7 +23,7 @@ void JsVlcDeinterlace::initJsApi()
     SET_METHOD( constructorTemplate, "enable", &JsVlcDeinterlace::enable );
     SET_METHOD( constructorTemplate, "disable", &JsVlcDeinterlace::disable );
 
-    Local<Function> constructor = constructorTemplate->GetFunction();
+    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 
