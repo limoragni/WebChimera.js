@@ -214,13 +214,23 @@ private:
     bool _isPlaying;
     bool _reversePlayback;
 
+    // Accumulated loading time used to apply it when first frame is ready and video is playing.
     libvlc_time_t _loadingTime;
+    // Estimated playback time (used to get the frame number) to be as much frame-accurate as possible.
     libvlc_time_t _currentTime;
+    // Flag used to seek a frame accurately when video is not playing, applying some sanity checks.
     bool _performSeek;
+    // In frame-ready callback we avoid sending frames when video is paused. However, to be more
+    // frame-accurate, we allow the callback to send the received frame n-times, since it could be different,
+    // just to make sure the latest one sent is the proper one.
     unsigned _seekedFrameLoadedSanityChecks;
 
-    libvlc_time_t _lastTimeFrameReady;
-    libvlc_time_t _lastTimeGlobalFrameReady;
+    // VLC playback time has a low refresh rate, for that reason we estimate the time by ourselves.
+    // This value is used to compare the previous VLC time, and start estimating when it's updated.
+    libvlc_time_t _lastPlaybackTimeFrameReady;
+    // Timestamp used to know how much time has passed from the previous update. That difference is
+    // added to the estimated current time taking into account the playback rate.
+    libvlc_time_t _lastGlobalTimeFrameReady;
 
     ELoadVideoState _loadVideoState;
     float _bufferingValue;
