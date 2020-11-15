@@ -322,7 +322,8 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
     _lastPlaybackTimeFrameReady( InvalidTime ),
     _lastGlobalTimeFrameReady( InvalidTime ),
     _loadVideoState( ELoadVideoState::UNLOADED ),
-    _bufferingValue( 0.0f )
+    _bufferingValue( 0.0f ),
+    _withFps( 0.0f )
 {
     Wrap( thisObject );
 
@@ -881,7 +882,7 @@ void JsVlcPlayer::setRateReverse( double rateReverse )
 }
 
 double JsVlcPlayer::decimalFrame() {
-  return static_cast<double>( static_cast<float>( time() ) / ( 1000.0f / player().playback().get_fps() ) );
+  return time() / ( 1000.0 / fps() );
 }
 
 void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
@@ -904,17 +905,23 @@ void JsVlcPlayer::jsLoad( const v8::FunctionCallbackInfo<v8::Value>& args )
 
         bool startPlayingReverse = false;
         if( args.Length() >= 3 ) {
-          assert( args[2]->IsBoolean() );
-          startPlayingReverse = args[2]->ToBoolean()->Value();
+            assert( args[2]->IsBoolean() );
+            startPlayingReverse = args[2]->ToBoolean()->Value();
         }
 
         unsigned atTime = 0;
         if( args.Length() >= 4 ) {
-          assert( args[3]->IsUint32() );
-          atTime = args[3]->ToUint32( context ).ToLocalChecked()->Value();
+            assert( args[3]->IsUint32() );
+            atTime = args[3]->ToUint32( context ).ToLocalChecked()->Value();
         }
 
-        jsPlayer->load( *mrl, startPlaying, startPlayingReverse, atTime );
+        double withFps = 0.0;
+        if( args.Length() >= 5 ) {
+            assert( args[4]->IsNumber() );
+            withFps = args[4]->ToNumber( context ).ToLocalChecked()->Value();
+        }
+
+        jsPlayer->load( *mrl, startPlaying, startPlayingReverse, atTime, withFps );
     }
 }
 
@@ -970,11 +977,17 @@ double JsVlcPlayer::length()
     return static_cast<double>( player().playback().get_length() );
 }
 
+double JsVlcPlayer::fps()
+{
+    if ( _withFps > 0.0f )
+        return static_cast<double>( _withFps );
+
+    return static_cast<double>( player().playback().get_fps() );
+}
+
 double JsVlcPlayer::frames()
 {
-    vlc::playback& playback = player().playback();
-
-    return std::ceil( static_cast<double>( static_cast<float>( playback.get_length() ) * playback.get_fps() / 1000.0f ) ) + 1;
+    return std::ceil( length() * fps() / 1000.0 ) + 1;
 }
 
 unsigned JsVlcPlayer::state()
@@ -1050,7 +1063,7 @@ void JsVlcPlayer::setFrame( double frame )
 {
     frame = std::max( 0.0, std::min( frame, frames() ) );
 
-    setTime( std::min( frame * static_cast<double>( 1000.0f / player().playback().get_fps() ), length() ) );
+    setTime( std::min( frame * 1000.0 / fps(), length() ) );
 }
 
 void JsVlcPlayer::previousFrame()
@@ -1066,13 +1079,12 @@ void JsVlcPlayer::nextFrame()
 {
     pause();
 
-    vlc::playback& playback = player().playback();
-    const double frames = static_cast<double>( static_cast<float>( playback.get_length() ) / ( 1000.0f / playback.get_fps() ) );
+    const double frames = length() / ( 1000.0 / fps() );
     const double iFrame = decimalFrame();
     if( iFrame < frames - 1.0 )
         setFrame( std::floor( iFrame ) + 1 );
     else
-        setTime( static_cast<double>( playback.get_length() ) );
+        setTime( length() );
 }
 
 unsigned JsVlcPlayer::volume()
@@ -1095,7 +1107,7 @@ void JsVlcPlayer::setMuted( bool mute )
     player().audio().set_mute( mute );
 }
 
-void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime )
+void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime, double withFps )
 {
     stop();
     setCurrentTime( static_cast<libvlc_time_t>( atTime ) );
@@ -1120,6 +1132,8 @@ void JsVlcPlayer::load( const std::string& mrl, bool startPlaying, bool startPla
     if( idx >= 0 ) {
         _startPlaying = startPlaying;
         _startPlayingReverse = startPlayingReverse;
+        _withFps = static_cast<float>( withFps );
+
         _loadVideoState = ELoadVideoState::GETTING;
 
         p.play( idx );
@@ -1155,7 +1169,7 @@ void JsVlcPlayer::playReverse()
             libvlc_time_t lastTime = 0;
             libvlc_time_t currentTime = 0;
             vlc::playback& playback = player().playback();
-            const double msPerFrame = static_cast<double>(1000.0f / playback.get_fps());
+            const double msPerFrame = 1000.0 / fps();
 
             while( _isPlaying && _reversePlayback ) {
                 libvlc_time_t msToGoBack;

@@ -72,6 +72,7 @@ public:
     bool playing();
     bool playingReverse();
     double length();
+    double fps();
     double frames();
     unsigned state();
 
@@ -99,7 +100,7 @@ public:
     bool muted();
     void setMuted( bool );
 
-    void load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime );
+    void load( const std::string& mrl, bool startPlaying, bool startPlayingReverse, unsigned atTime, double withFps );
     void play();
     void playReverse();
     void pause();
@@ -234,4 +235,8 @@ private:
 
     ELoadVideoState _loadVideoState;
     float _bufferingValue;
+
+    // Perform conversions from time to frame using this FPS value. Useful when we don't want to use the
+    // internal FPS value, average frame rate, and we prefer using another one, e.g. raw frame rate.
+    float _withFps;
 };
