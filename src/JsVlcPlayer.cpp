@@ -133,13 +133,6 @@ void JsVlcPlayer::LibvlcLogEvent::process( JsVlcPlayer* jsPlayer )
             JsVlcPlayer::setJsCallback( property, value, info, callback );                                                       \
         } )
 
-#include <fstream>
-void log(const std::string& text)
-{
-  std::ofstream log_file("log_file.txt", std::ios_base::out | std::ios_base::app);
-  log_file << text << std::endl;
-}
-
 void JsVlcPlayer::initJsApi( const v8::Handle<v8::Object>& exports )
 {
     node::AtExit( [] ( void* ) { JsVlcPlayer::closeAll(); } );
@@ -346,9 +339,7 @@ JsVlcPlayer::JsVlcPlayer( v8::Local<v8::Object>& thisObject, const v8::Local<v8:
 {
     using namespace v8;
 
-    log("constructor.1");
     Wrap( thisObject );
-    log("constructor.2");
 
     _instances.insert( this );
 
