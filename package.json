@@ -20,7 +20,6 @@
     "test": "cd test && node test.js"
   },
   "dependencies": {
-    "bindings": "~1.5.0",
     "cmake-js": "^6.1.0"
   },
   "devDependencies": {

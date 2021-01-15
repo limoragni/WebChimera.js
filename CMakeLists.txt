@@ -21,7 +21,7 @@ if (MSVC)
     endif ()
   endforeach ()
 else ()
-  add_definitions(-std=c++11)
+  add_definitions(-std=c++14)
 endif ()
 
 # Include submodules.
@@ -67,3 +67,9 @@ endif ()
 
 # Link submodules to library.
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} libvlc_wrapper)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  V8_31BIT_SMIS_ON_64BIT_ARCH
+  V8_COMPRESS_POINTERS
+  V8_REVERSE_JSARGS
+)

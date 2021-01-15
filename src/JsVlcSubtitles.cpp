@@ -10,6 +10,7 @@ void JsVlcSubtitles::initJsApi()
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
+    Local<Context> context = isolate->GetCurrentContext();
     HandleScope scope( isolate );
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
@@ -29,7 +30,7 @@ void JsVlcSubtitles::initJsApi()
 
     SET_METHOD( constructorTemplate, "load", &JsVlcSubtitles::load );
 
-    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
+    Local<Function> constructor = constructorTemplate->GetFunction( context ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 
@@ -38,8 +39,6 @@ v8::UniquePersistent<v8::Object> JsVlcSubtitles::create( JsVlcPlayer& player )
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
-
     Local<Context> context = isolate->GetCurrentContext();
 
     Local<Function> constructor =
@@ -55,7 +54,7 @@ void JsVlcSubtitles::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
+    Local<Context> context = isolate->GetCurrentContext();
 
     Local<Object> thisObject = args.Holder();
     if( args.IsConstructCall() && thisObject->InternalFieldCount() > 0 ) {

@@ -50,7 +50,11 @@ inline double FromJsValue<double>( const v8::Local<v8::Value>& value )
 template<>
 inline std::string FromJsValue<std::string>( const v8::Local<v8::Value>& value )
 {
-    v8::String::Utf8Value str( value->ToString() );
+    using namespace v8;
+
+    Isolate* isolate = Isolate::GetCurrent();
+
+    String::Utf8Value str( isolate, value );
 
     return *str;
 }
@@ -85,7 +89,11 @@ inline v8::Local<v8::Value> ToJsValue( double value )
 
 inline v8::Local<v8::Value> ToJsValue( const std::string& value )
 {
-    return v8::String::NewFromUtf8( v8::Isolate::GetCurrent(), value.c_str(), v8::NewStringType::kNormal ).ToLocalChecked();
+    using namespace v8;
+
+    Isolate* isolate = Isolate::GetCurrent();
+
+    return String::NewFromUtf8( isolate, value.c_str() ).ToLocalChecked();
 }
 
 template<typename C, typename ... A, size_t ... I >

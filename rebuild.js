@@ -2,8 +2,8 @@ function build() {
     var cmakeJS = require("cmake-js");
 
     var defaultRuntime = "electron";
-    var defaultRuntimeVersion = "1.6.11";
-    var defaultWinArch = "ia32";
+    var defaultRuntimeVersion = "9.4.1";
+    var defaultWinArch = "x64";
 
     var options = {
         runtime: process.env.npm_config_wcjs_runtime || undefined,
@@ -24,6 +24,7 @@ function build() {
     if (buildSystem.options.arch == undefined && process.platform == "win32") {
         buildSystem.options.arch = defaultWinArch;
     }
+
     console.log(buildSystem.options);
     buildSystem.rebuild().catch( function() { process.exit(1); } );
 }
@@ -33,17 +34,14 @@ var times = 0;
 function begin() {
     try {
         build();
-    }
-    catch(e) {
+    } catch(e) {
         if (e.code == "MODULE_NOT_FOUND") {
             if (times++ == 5) {
                 process.exit(1);
-            }
-            else {
+            } else {
                 setTimeout(begin, 2000);
             }
-        }
-        else {
+        } else {
             process.exit(1);
         }
     }

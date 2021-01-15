@@ -4,11 +4,27 @@
 #include "JsVlcPlayer.h"
 #include "NodeTools.h"
 
-void Init( v8::Handle<v8::Object> exports, v8::Handle<v8::Object> module )
+#include <fstream>
+void log1(const std::string& text)
 {
-    thisModule.Reset( v8::Isolate::GetCurrent(), module );
-
-    JsVlcPlayer::initJsApi( exports );
+  std::ofstream log_file("log_file.txt", std::ios_base::out | std::ios_base::app);
+  log_file << text << std::endl;
 }
 
-NODE_MODULE( WebChimera, Init )
+// Initialize this addon to be context-aware.
+extern "C" NODE_MODULE_EXPORT void
+NODE_MODULE_INITIALIZER(
+  v8::Local<v8::Object> exports,
+  v8::Local<v8::Value> module,
+  v8::Local<v8::Context> context
+)
+{
+    using namespace v8;
+
+    log1("Init.1");
+    thisModule.Reset( Isolate::GetCurrent(), Local<Object>::Cast( module ) );
+    log1("Init.2");
+
+    JsVlcPlayer::initJsApi( exports );
+    log1("Init.3");
+}

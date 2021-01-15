@@ -13,7 +13,7 @@ void JsVlcVideo::initJsApi()
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
+    Local<Context> context = isolate->GetCurrentContext();
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
     constructorTemplate->SetClassName(
@@ -35,7 +35,7 @@ void JsVlcVideo::initJsApi()
     SET_RW_PROPERTY( instanceTemplate, "saturation", &JsVlcVideo::saturation, &JsVlcVideo::setSaturation );
     SET_RW_PROPERTY( instanceTemplate, "gamma", &JsVlcVideo::gamma, &JsVlcVideo::setGamma );
 
-    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
+    Local<Function> constructor = constructorTemplate->GetFunction( context ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 
@@ -44,8 +44,6 @@ v8::UniquePersistent<v8::Object> JsVlcVideo::create( JsVlcPlayer& player )
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
-
     Local<Context> context = isolate->GetCurrentContext();
 
     Local<Function> constructor =
@@ -61,7 +59,7 @@ void JsVlcVideo::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& args )
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
+    Local<Context> context = isolate->GetCurrentContext();
 
     Local<Object> thisObject = args.Holder();
     if( args.IsConstructCall() && thisObject->InternalFieldCount() > 0 ) {

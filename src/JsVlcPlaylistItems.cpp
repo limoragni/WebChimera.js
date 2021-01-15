@@ -13,6 +13,7 @@ void JsVlcPlaylistItems::initJsApi()
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
+    Local<Context> context = isolate->GetCurrentContext();
     HandleScope scope( isolate );
 
     Local<FunctionTemplate> constructorTemplate = FunctionTemplate::New( isolate, jsCreate );
@@ -30,7 +31,7 @@ void JsVlcPlaylistItems::initJsApi()
     SET_METHOD( constructorTemplate, "clear", &JsVlcPlaylistItems::clear );
     SET_METHOD( constructorTemplate, "remove", &JsVlcPlaylistItems::remove );
 
-    Local<Function> constructor = constructorTemplate->GetFunction( isolate->GetCurrentContext() ).ToLocalChecked();
+    Local<Function> constructor = constructorTemplate->GetFunction( context ).ToLocalChecked();
     _jsConstructor.Reset( isolate, constructor );
 }
 
@@ -39,8 +40,6 @@ v8::UniquePersistent<v8::Object> JsVlcPlaylistItems::create( JsVlcPlayer& player
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
-
     Local<Context> context = isolate->GetCurrentContext();
 
     Local<Function> constructor =
@@ -56,7 +55,7 @@ void JsVlcPlaylistItems::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& ar
     using namespace v8;
 
     Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope( isolate );
+    Local<Context> context = isolate->GetCurrentContext();
 
     Local<Object> thisObject = args.Holder();
     if( args.IsConstructCall() && thisObject->InternalFieldCount() > 0 ) {
@@ -67,7 +66,6 @@ void JsVlcPlaylistItems::jsCreate( const v8::FunctionCallbackInfo<v8::Value>& ar
             args.GetReturnValue().Set( thisObject );
         }
     } else {
-        Local<Context> context = isolate->GetCurrentContext();
         Local<Function> constructor =
             Local<Function>::New( isolate, _jsConstructor );
         Local<Value> argv[] = { args[0] };
